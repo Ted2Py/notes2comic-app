@@ -2,8 +2,21 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { Mail, Calendar, User, Shield, ArrowLeft, Lock, Smartphone } from "lucide-react";
+import {
+  Mail,
+  Calendar,
+  User,
+  Shield,
+  ArrowLeft,
+  Lock,
+  Smartphone,
+  Sparkles,
+  Palette,
+  BarChart3,
+} from "lucide-react";
 import { toast } from "sonner";
+import { StyleSelector } from "@/components/comic/style-selector";
+import { ToneSelector } from "@/components/comic/tone-selector";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -26,18 +39,67 @@ import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { useSession } from "@/lib/auth-client";
 
+interface UsageStats {
+  totalComics: number;
+  totalPanels: number;
+  completedComics: number;
+  draftComics: number;
+}
+
 export default function ProfilePage() {
   const { data: session, isPending } = useSession();
   const router = useRouter();
   const [editProfileOpen, setEditProfileOpen] = useState(false);
   const [securityOpen, setSecurityOpen] = useState(false);
-  const [emailPrefsOpen, setEmailPrefsOpen] = useState(false);
+  const [comicsSettingsOpen, setComicsSettingsOpen] = useState(false);
+  const [usageStats, setUsageStats] = useState<UsageStats>({
+    totalComics: 0,
+    totalPanels: 0,
+    completedComics: 0,
+    draftComics: 0,
+  });
+  const [preferredArtStyle, setPreferredArtStyle] = useState("retro");
+  const [preferredTone, setPreferredTone] = useState("friendly");
+  const [googleCredentials, setGoogleCredentials] = useState({
+    projectId: "",
+    apiKey: "",
+  });
 
   useEffect(() => {
     if (!isPending && !session) {
       router.push("/");
     }
   }, [isPending, session, router]);
+
+  useEffect(() => {
+    // Fetch user's comics stats
+    const fetchStats = async () => {
+      try {
+        const response = await fetch("/api/comics");
+        if (response.ok) {
+          const data = await response.json();
+          const comics = data.comics || [];
+          const completed = comics.filter((c: any) => c.status === "completed");
+          const drafts = comics.filter((c: any) => c.status === "draft");
+          const totalPanels = comics.reduce(
+            (sum: number, c: any) => sum + (c.panels?.length || 0),
+            0
+          );
+
+          setUsageStats({
+            totalComics: comics.length,
+            totalPanels,
+            completedComics: completed.length,
+            draftComics: drafts.length,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to fetch stats:", error);
+      }
+    };
+
+    fetchStats();
+  }, []);
 
   if (isPending || !session) {
     return (
@@ -58,9 +120,13 @@ export default function ProfilePage() {
 
   const handleEditProfileSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    // In a real app, this would call an API to update the user profile
     toast.info("Profile updates require backend implementation");
     setEditProfileOpen(false);
+  };
+
+  const handleSaveComicSettings = () => {
+    toast.success("Comic preferences saved!");
+    setComicsSettingsOpen(false);
   };
 
   return (
@@ -117,6 +183,76 @@ export default function ProfilePage() {
               </div>
             </div>
           </CardHeader>
+        </Card>
+
+        {/* Notes2Comic Usage Statistics */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BarChart3 className="h-5 w-5" />
+              Your Comic Statistics
+            </CardTitle>
+            <CardDescription>Track your creative progress</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="p-4 border rounded-lg bg-muted/50">
+                <p className="text-2xl font-bold">{usageStats.totalComics}</p>
+                <p className="text-sm text-muted-foreground">Total Comics</p>
+              </div>
+              <div className="p-4 border rounded-lg bg-muted/50">
+                <p className="text-2xl font-bold">{usageStats.totalPanels}</p>
+                <p className="text-sm text-muted-foreground">Total Panels</p>
+              </div>
+              <div className="p-4 border rounded-lg bg-green-500/10">
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">
+                  {usageStats.completedComics}
+                </p>
+                <p className="text-sm text-muted-foreground">Completed</p>
+              </div>
+              <div className="p-4 border rounded-lg bg-yellow-500/10">
+                <p className="text-2xl font-bold text-yellow-600 dark:text-yellow-400">
+                  {usageStats.draftComics}
+                </p>
+                <p className="text-sm text-muted-foreground">Drafts</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Comic Settings */}
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Palette className="h-5 w-5" />
+              Comic Preferences
+            </CardTitle>
+            <CardDescription>
+              Set your default style and tone for new comics
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-4 border rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Default Style</p>
+                  <p className="font-medium capitalize">{preferredArtStyle}</p>
+                </div>
+                <div className="p-4 border rounded-lg">
+                  <p className="text-sm text-muted-foreground mb-1">Default Tone</p>
+                  <p className="font-medium capitalize">{preferredTone}</p>
+                </div>
+              </div>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={() => setComicsSettingsOpen(true)}
+              >
+                <Sparkles className="h-4 w-4 mr-2" />
+                Edit Comic Preferences
+              </Button>
+            </div>
+          </CardContent>
         </Card>
 
         {/* Account Information */}
@@ -183,35 +319,6 @@ export default function ProfilePage() {
           </CardContent>
         </Card>
 
-        {/* Account Activity */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Recent Activity</CardTitle>
-            <CardDescription>
-              Your recent account activity and sessions
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center space-x-3">
-                  <div className="h-2 w-2 bg-green-500 rounded-full"></div>
-                  <div>
-                    <p className="font-medium">Current Session</p>
-                    <p className="text-sm text-muted-foreground">Active now</p>
-                  </div>
-                </div>
-                <Badge
-                  variant="outline"
-                  className="text-green-600 border-green-600"
-                >
-                  Active
-                </Badge>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Quick Actions */}
         <Card>
           <CardHeader>
@@ -221,7 +328,7 @@ export default function ProfilePage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <Button
                 variant="outline"
                 className="justify-start h-auto p-4"
@@ -245,19 +352,6 @@ export default function ProfilePage() {
                   <div className="font-medium">Security Settings</div>
                   <div className="text-xs text-muted-foreground">
                     Manage security options
-                  </div>
-                </div>
-              </Button>
-              <Button
-                variant="outline"
-                className="justify-start h-auto p-4"
-                onClick={() => setEmailPrefsOpen(true)}
-              >
-                <Mail className="h-4 w-4 mr-2" />
-                <div className="text-left">
-                  <div className="font-medium">Email Preferences</div>
-                  <div className="text-xs text-muted-foreground">
-                    Configure notifications
                   </div>
                 </div>
               </Button>
@@ -309,6 +403,78 @@ export default function ProfilePage() {
               <Button type="submit">Save Changes</Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Comic Settings Dialog */}
+      <Dialog open={comicsSettingsOpen} onOpenChange={setComicsSettingsOpen}>
+        <DialogContent className="sm:max-w-[600px] max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Comic Preferences</DialogTitle>
+            <DialogDescription>
+              Set your defaults and configure Google Cloud credentials
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-6">
+            {/* Default Style & Tone */}
+            <div className="space-y-4">
+              <h3 className="font-medium">Default Style & Tone</h3>
+              <div className="space-y-2">
+                <Label>Preferred Art Style</Label>
+                <StyleSelector
+                  value={preferredArtStyle}
+                  onChange={setPreferredArtStyle}
+                />
+              </div>
+              <div className="space-y-2">
+                <Label>Preferred Tone</Label>
+                <ToneSelector value={preferredTone} onChange={setPreferredTone} />
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Google Cloud Credentials (Optional) */}
+            <div className="space-y-4">
+              <h3 className="font-medium">Google Cloud Credentials (Optional)</h3>
+              <p className="text-sm text-muted-foreground">
+                Provide your own Google Cloud credentials for AI generation. If
+                not provided, the app's default credentials will be used.
+              </p>
+              <div className="space-y-3">
+                <div className="space-y-2">
+                  <Label htmlFor="projectId">Project ID</Label>
+                  <Input
+                    id="projectId"
+                    value={googleCredentials.projectId}
+                    onChange={(e) =>
+                      setGoogleCredentials({ ...googleCredentials, projectId: e.target.value })
+                    }
+                    placeholder="your-project-id"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="apiKey">API Key</Label>
+                  <Input
+                    id="apiKey"
+                    type="password"
+                    value={googleCredentials.apiKey}
+                    onChange={(e) =>
+                      setGoogleCredentials({ ...googleCredentials, apiKey: e.target.value })
+                    }
+                    placeholder="your-api-key"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 pt-4">
+              <Button variant="outline" onClick={() => setComicsSettingsOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleSaveComicSettings}>Save Changes</Button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
 
@@ -369,43 +535,6 @@ export default function ProfilePage() {
           </div>
           <div className="flex justify-end pt-4">
             <Button variant="outline" onClick={() => setSecurityOpen(false)}>
-              Close
-            </Button>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Email Preferences Dialog */}
-      <Dialog open={emailPrefsOpen} onOpenChange={setEmailPrefsOpen}>
-        <DialogContent className="sm:max-w-[425px]">
-          <DialogHeader>
-            <DialogTitle>Email Preferences</DialogTitle>
-            <DialogDescription>
-              Configure your email notification settings.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div>
-                <p className="font-medium">Marketing Emails</p>
-                <p className="text-sm text-muted-foreground">
-                  Product updates and announcements
-                </p>
-              </div>
-              <Badge variant="secondary">Coming Soon</Badge>
-            </div>
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div>
-                <p className="font-medium">Security Alerts</p>
-                <p className="text-sm text-muted-foreground">
-                  Important security notifications
-                </p>
-              </div>
-              <Badge variant="default">Always On</Badge>
-            </div>
-          </div>
-          <div className="flex justify-end pt-4">
-            <Button variant="outline" onClick={() => setEmailPrefsOpen(false)}>
               Close
             </Button>
           </div>

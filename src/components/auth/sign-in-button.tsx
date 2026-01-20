@@ -4,6 +4,7 @@ import { useState } from "react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { signIn, useSession } from "@/lib/auth-client"
@@ -13,6 +14,7 @@ export function SignInButton() {
   const router = useRouter()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
+  const [rememberMe, setRememberMe] = useState(true)
   const [error, setError] = useState("")
   const [isPending, setIsPending] = useState(false)
 
@@ -33,6 +35,7 @@ export function SignInButton() {
       const result = await signIn.email({
         email,
         password,
+        rememberMe,
         callbackURL: "/dashboard",
       })
 
@@ -74,6 +77,20 @@ export function SignInButton() {
           required
           disabled={isPending}
         />
+      </div>
+      <div className="flex items-center space-x-2">
+        <Checkbox
+          id="remember"
+          checked={rememberMe}
+          onCheckedChange={(checked) => setRememberMe(checked === true)}
+          disabled={isPending}
+        />
+        <Label
+          htmlFor="remember"
+          className="text-sm font-normal cursor-pointer"
+        >
+          Remember me
+        </Label>
       </div>
       {error && (
         <p className="text-sm text-destructive">{error}</p>

@@ -21,7 +21,7 @@ export default async function RegisterPage() {
     <div className="flex min-h-[calc(100vh-4rem)] items-center justify-center p-4">
       <Card className="w-full max-w-md">
         <CardHeader className="text-center">
-          <CardTitle>Create an account</CardTitle>
+          <CardTitle className="text-3xl font-bold tracking-[0.08em]">Create an account</CardTitle>
           <CardDescription>Get started with your new account</CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col items-center">

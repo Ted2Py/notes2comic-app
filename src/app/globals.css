@@ -1,3 +1,4 @@
+@import url('https://fonts.googleapis.com/css2?family=Bangers&family=Comic+Neue:wght@400;700&display=swap');
 @import "tailwindcss";
 
 @theme inline {
@@ -39,79 +40,257 @@
 }
 
 :root {
-  --radius: 0.625rem;
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
-  --primary: oklch(0.21 0.006 285.885);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
-  --ring: oklch(0.705 0.015 286.067);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.141 0.005 285.823);
-  --sidebar-primary: oklch(0.21 0.006 285.885);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.967 0.001 286.375);
-  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-  --sidebar-border: oklch(0.92 0.004 286.32);
-  --sidebar-ring: oklch(0.705 0.015 286.067);
+  --radius: 0px;
+
+  /* Retro Comic Theme Colors */
+  --comic-yellow: #FFE135;
+  --comic-red: #FF2D2D;
+  --comic-blue: #00A8E8;
+  --comic-pink: #FF69B4;
+  --comic-black: #1a1a1a;
+  --comic-white: #FFF8E7;
+
+  --background: #FFF8E7;
+  --foreground: #1a1a1a;
+  --card: #FFFFFF;
+  --card-foreground: #1a1a1a;
+  --popover: #FFFFFF;
+  --popover-foreground: #1a1a1a;
+  --primary: #FF2D2D;
+  --primary-foreground: #FFFFFF;
+  --secondary: #FFE135;
+  --secondary-foreground: #1a1a1a;
+  --muted: #F5F5DC;
+  --muted-foreground: #666666;
+  --accent: #00A8E8;
+  --accent-foreground: #FFFFFF;
+  --destructive: #FF2D2D;
+  --border: #1a1a1a;
+  --input: #1a1a1a;
+  --ring: #FF2D2D;
+  --chart-1: #FF2D2D;
+  --chart-2: #FFE135;
+  --chart-3: #00A8E8;
+  --chart-4: #FF69B4;
+  --chart-5: #1a1a1a;
+  --sidebar: #FFFFFF;
+  --sidebar-foreground: #1a1a1a;
+  --sidebar-primary: #FF2D2D;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #FFE135;
+  --sidebar-accent-foreground: #1a1a1a;
+  --sidebar-border: #1a1a1a;
+  --sidebar-ring: #FF2D2D;
 }
 
 .dark {
-  --background: oklch(0.141 0.005 285.823);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.21 0.006 285.885);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.21 0.006 285.885);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.92 0.004 286.32);
-  --primary-foreground: oklch(0.21 0.006 285.885);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.552 0.016 285.938);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.21 0.006 285.885);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.274 0.006 286.033);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.552 0.016 285.938);
+  --background: #1a1a1a;
+  --foreground: #FFF8E7;
+  --card: #2a2a2a;
+  --card-foreground: #FFF8E7;
+  --popover: #2a2a2a;
+  --popover-foreground: #FFF8E7;
+  --primary: #FF2D2D;
+  --primary-foreground: #FFFFFF;
+  --secondary: #FFE135;
+  --secondary-foreground: #1a1a1a;
+  --muted: #3a3a3a;
+  --muted-foreground: #aaaaaa;
+  --accent: #00A8E8;
+  --accent-foreground: #FFFFFF;
+  --destructive: #FF2D2D;
+  --border: #444444;
+  --input: #444444;
+  --ring: #FF2D2D;
+  --chart-1: #FF2D2D;
+  --chart-2: #FFE135;
+  --chart-3: #00A8E8;
+  --chart-4: #FF69B4;
+  --chart-5: #FFFFFF;
+  --sidebar: #2a2a2a;
+  --sidebar-foreground: #FFF8E7;
+  --sidebar-primary: #FF2D2D;
+  --sidebar-primary-foreground: #FFFFFF;
+  --sidebar-accent: #FFE135;
+  --sidebar-accent-foreground: #1a1a1a;
+  --sidebar-border: #444444;
+  --sidebar-ring: #FF2D2D;
+}
+
+/* Halftone pattern background */
+.halftone-bg {
+  background-image: radial-gradient(circle, #1a1a1a 1px, transparent 1px);
+  background-size: 4px 4px;
+}
+
+.dark .halftone-bg {
+  background-image: radial-gradient(circle, #444 1px, transparent 1px);
+}
+
+/* Comic book border style */
+.comic-border {
+  border: 3px solid #1a1a1a;
+  box-shadow: 4px 4px 0 #1a1a1a;
+}
+
+.dark .comic-border {
+  border: 3px solid #FFF8E7;
+  box-shadow: 4px 4px 0 #FFF8E7;
+}
+
+/* Speech bubble style */
+.speech-bubble {
+  position: relative;
+  background: #FFFFFF;
+  border: 3px solid #1a1a1a;
+  border-radius: 20px;
+  padding: 1rem;
+}
+
+.speech-bubble::after {
+  content: '';
+  position: absolute;
+  bottom: -15px;
+  left: 30px;
+  width: 0;
+  height: 0;
+  border: 10px solid transparent;
+  border-top-color: #1a1a1a;
+}
+
+.dark .speech-bubble {
+  background: #2a2a2a;
+  border-color: #FFF8E7;
+}
+
+.dark .speech-bubble::after {
+  border-top-color: #FFF8E7;
 }
 
 @layer base {
   * {
     @apply border-border;
   }
+
   body {
     @apply bg-background text-foreground;
+    font-family: system-ui, -apple-system, sans-serif;
   }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: 'Bangers', cursive;
+    letter-spacing: 0.08em;
+  }
+
+  /* Retro button styling */
+  button, .btn {
+    font-family: 'Bangers', cursive;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    border: 3px solid #1a1a1a;
+    box-shadow: 3px 3px 0 #1a1a1a;
+    transition: all 0.1s ease;
+  }
+
+  button:hover, .btn:hover {
+    transform: translate(2px, 2px);
+    box-shadow: 1px 1px 0 #1a1a1a;
+  }
+
+  button:active, .btn:active {
+    transform: translate(3px, 3px);
+    box-shadow: 0 0 0 #1a1a1a;
+  }
+
+  .dark button, .dark .btn {
+    border-color: #FFF8E7;
+    box-shadow: 3px 3px 0 #FFF8E7;
+  }
+
+  .dark button:hover, .dark .btn:hover {
+    box-shadow: 1px 1px 0 #FFF8E7;
+  }
+
+  .dark button:active, .dark .btn:active {
+    box-shadow: 0 0 0 #FFF8E7;
+  }
+}
+
+/* Comic panel style */
+.comic-panel {
+  border: 4px solid #1a1a1a;
+  background: #FFFFFF;
+  position: relative;
+}
+
+.comic-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(135deg, transparent 49%, #1a1a1a 49%, #1a1a1a 51%, transparent 51%);
+  opacity: 0.03;
+  pointer-events: none;
+}
+
+.dark .comic-panel {
+  border-color: #FFF8E7;
+  background: #2a2a2a;
+}
+
+/* POW effect */
+.pow-effect {
+  position: relative;
+  display: inline-block;
+}
+
+.pow-effect::before {
+  content: 'POW!';
+  position: absolute;
+  top: -20px;
+  right: -30px;
+  font-family: 'Bangers', cursive;
+  font-size: 1.5rem;
+  color: #FF2D2D;
+  text-shadow: 2px 2px 0 #FFE135, -1px -1px 0 #1a1a1a;
+  transform: rotate(-15deg);
+  animation: pow-bounce 0.5s ease-in-out;
+}
+
+@keyframes pow-bounce {
+  0%, 100% { transform: rotate(-15deg) scale(1); }
+  50% { transform: rotate(-15deg) scale(1.2); }
+}
+
+/* Retro card styling */
+.card {
+  border: 3px solid #1a1a1a;
+  box-shadow: 4px 4px 0 #1a1a1a;
+  background: #FFFFFF;
+}
+
+.dark .card {
+  border-color: #FFF8E7;
+  box-shadow: 4px 4px 0 #FFF8E7;
+  background: #2a2a2a;
+}
+
+/* Input styling */
+input, textarea, select {
+  border: 3px solid #1a1a1a !important;
+  border-radius: 0 !important;
+  background: #FFFFFF !important;
+}
+
+.dark input, .dark textarea, .dark select {
+  border-color: #FFF8E7 !important;
+  background: #2a2a2a !important;
+}
+
+input:focus, textarea:focus, select:focus {
+  outline: none !important;
+  box-shadow: 3px 3px 0 #FF2D2D !important;
+}
+
+.dark input:focus, .dark textarea:focus, .dark select:focus {
+  box-shadow: 3px 3px 0 #FF2D2D !important;
 }

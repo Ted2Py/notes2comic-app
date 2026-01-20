@@ -27,12 +27,14 @@ export function UserProfile() {
     return (
       <div className="flex items-center gap-2">
         <Link href="/login">
-          <Button variant="ghost" size="sm">
+          <Button variant="outline" size="sm" className="border-foreground/20">
             Sign in
           </Button>
         </Link>
         <Link href="/register">
-          <Button size="sm">Sign up</Button>
+          <Button variant="outline" size="sm" className="border-foreground/20">
+            Sign up
+          </Button>
         </Link>
       </div>
     );

@@ -140,11 +140,19 @@ export async function upload(
   folder?: string,
   config?: StorageConfig
 ): Promise<StorageResult> {
-  // Sanitize filename
+  // Sanitize filename and add timestamp to prevent collisions
   const sanitizedFilename = sanitizeFilename(filename);
+  const timestamp = Date.now();
+  const ext = sanitizedFilename.includes(".")
+    ? sanitizedFilename.slice(sanitizedFilename.lastIndexOf("."))
+    : "";
+  const nameWithoutExt = ext
+    ? sanitizedFilename.slice(0, sanitizedFilename.lastIndexOf("."))
+    : sanitizedFilename;
+  const uniqueFilename = `${nameWithoutExt}-${timestamp}${ext}`;
 
   // Validate file
-  const validation = validateFile(buffer, sanitizedFilename, config);
+  const validation = validateFile(buffer, uniqueFilename, config);
   if (!validation.valid) {
     throw new Error(validation.error);
   }
@@ -153,7 +161,7 @@ export async function upload(
 
   if (hasVercelBlob) {
     // Use Vercel Blob storage
-    const pathname = folder ? `${folder}/${sanitizedFilename}` : sanitizedFilename;
+    const pathname = folder ? `${folder}/${uniqueFilename}` : uniqueFilename;
     const blob = await put(pathname, buffer, {
       access: "public",
     });
@@ -165,7 +173,7 @@ export async function upload(
   } else {
     // Use local filesystem storage
     const uploadsDir = join(process.cwd(), "public", "uploads");
-    const targetDir = folder ? join(uploadsDir, folder) : uploadsDir;
+    const targetDir = uploadsDir; // Always use public/uploads as base
 
     // Ensure the directory exists
     if (!existsSync(targetDir)) {
@@ -173,12 +181,12 @@ export async function upload(
     }
 
     // Write the file
-    const filepath = join(targetDir, sanitizedFilename);
+    const filepath = join(targetDir, uniqueFilename);
     await writeFile(filepath, buffer);
 
-    // Return local URL
-    const pathname = folder ? `${folder}/${sanitizedFilename}` : sanitizedFilename;
-    const url = `/uploads/${pathname}`;
+    // Return local URL (just /uploads/filename, no duplicate path)
+    const url = `/uploads/${uniqueFilename}`;
+    const pathname = uniqueFilename;
 
     return {
       url,

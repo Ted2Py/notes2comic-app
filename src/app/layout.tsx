@@ -1,4 +1,3 @@
-import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
@@ -6,48 +5,35 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
 import type { Metadata } from "next";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
-  subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
-});
-
 export const metadata: Metadata = {
   title: {
-    default: "Agentic Coding Boilerplate",
-    template: "%s | Agentic Coding Boilerplate",
+    default: "Notes2Comic - Turn Notes Into Engaging Comics",
+    template: "%s | Notes2Comic",
   },
   description:
-    "Complete agentic coding boilerplate with authentication, database, AI integration, and modern tooling - perfect for building AI-powered applications and autonomous agents by Leon van Zyl",
+    "Transform boring study materials into fun, visual comic strips. Upload your notes, PDFs, images, or videos and let AI create memorable educational content that actually sticks.",
   keywords: [
-    "Next.js",
-    "React",
-    "TypeScript",
-    "AI",
-    "OpenRouter",
-    "Boilerplate",
-    "Authentication",
-    "PostgreSQL",
+    "Notes to Comic",
+    "AI Comic Generator",
+    "Educational Comics",
+    "Study Tools",
+    "Visual Learning",
+    "Google Gemini",
+    "PDF to Comic",
   ],
-  authors: [{ name: "Leon van Zyl" }],
-  creator: "Leon van Zyl",
   openGraph: {
     type: "website",
     locale: "en_US",
-    siteName: "Agentic Coding Boilerplate",
-    title: "Agentic Coding Boilerplate",
+    siteName: "Notes2Comic",
+    title: "Notes2Comic - Turn Notes Into Engaging Comics",
     description:
-      "Complete agentic coding boilerplate with authentication, database, AI integration, and modern tooling",
+      "Transform boring study materials into fun, visual comic strips using AI",
   },
   twitter: {
     card: "summary_large_image",
-    title: "Agentic Coding Boilerplate",
+    title: "Notes2Comic - Turn Notes Into Engaging Comics",
     description:
-      "Complete agentic coding boilerplate with authentication, database, AI integration, and modern tooling",
+      "Transform boring study materials into fun, visual comic strips using AI",
   },
   robots: {
     index: true,
@@ -59,19 +45,15 @@ export const metadata: Metadata = {
 const jsonLd = {
   "@context": "https://schema.org",
   "@type": "WebApplication",
-  name: "Agentic Coding Boilerplate",
+  name: "Notes2Comic",
   description:
-    "Complete agentic coding boilerplate with authentication, database, AI integration, and modern tooling",
-  applicationCategory: "DeveloperApplication",
+    "Transform boring study materials into fun, visual comic strips using AI",
+  applicationCategory: "EducationalApplication",
   operatingSystem: "Any",
   offers: {
     "@type": "Offer",
     price: "0",
     priceCurrency: "USD",
-  },
-  author: {
-    "@type": "Person",
-    name: "Leon van Zyl",
   },
 };
 
@@ -88,9 +70,7 @@ export default function RootLayout({
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
       </head>
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
+      <body className="antialiased min-h-screen flex flex-col">
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
@@ -98,7 +78,7 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <SiteHeader />
-          <main id="main-content">{children}</main>
+          <main id="main-content" className="flex-1">{children}</main>
           <SiteFooter />
           <Toaster richColors position="top-right" />
         </ThemeProvider>

@@ -17,7 +17,12 @@ const serverEnvSchema = z.object({
   GOOGLE_CLIENT_ID: z.string().optional(),
   GOOGLE_CLIENT_SECRET: z.string().optional(),
 
-  // AI
+  // Google Cloud Gemini AI (for comic generation)
+  GOOGLE_CLOUD_PROJECT_ID: z.string().optional(),
+  GOOGLE_CLOUD_LOCATION: z.string().default("us-central1"),
+  GEMINI_API_KEY: z.string().optional(),
+
+  // OpenRouter (legacy, can be removed)
   OPENROUTER_API_KEY: z.string().optional(),
   OPENROUTER_MODEL: z.string().default("openai/gpt-5-mini"),
 
@@ -100,8 +105,12 @@ export function checkEnv(): void {
     warnings.push("Google OAuth is not configured. Social login will be disabled.");
   }
 
-  if (!process.env.OPENROUTER_API_KEY) {
-    warnings.push("OPENROUTER_API_KEY is not set. AI chat will not work.");
+  if (!process.env.GOOGLE_CLOUD_PROJECT_ID) {
+    warnings.push("GOOGLE_CLOUD_PROJECT_ID is not set. Comic generation may not work.");
+  }
+
+  if (!process.env.GEMINI_API_KEY) {
+    warnings.push("GEMINI_API_KEY is not set. AI comic generation will not work.");
   }
 
   if (!process.env.BLOB_READ_WRITE_TOKEN) {

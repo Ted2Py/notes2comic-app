@@ -1,0 +1,1 @@
+ALTER TABLE "comics" ADD COLUMN "page_size" text DEFAULT 'letter' NOT NULL;
