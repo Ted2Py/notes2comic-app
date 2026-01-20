@@ -2,10 +2,11 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { Trash2, Edit } from "lucide-react";
+import { Trash2, Edit, Eye, EyeOff } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
+import { formatRelativeTime } from "@/lib/date";
 
 interface ComicCardProps {
   id: string;
@@ -13,7 +14,10 @@ interface ComicCardProps {
   status: "draft" | "generating" | "completed" | "failed";
   thumbnailUrl?: string;
   panelCount?: number;
+  isPublic?: boolean;
+  createdAt?: Date | string;
   onDelete: (id: string) => void;
+  onVisibilityToggle?: (id: string, isPublic: boolean) => void;
 }
 
 export function ComicCard({
@@ -22,7 +26,10 @@ export function ComicCard({
   status,
   thumbnailUrl,
   panelCount,
+  isPublic,
+  createdAt,
   onDelete,
+  onVisibilityToggle,
 }: ComicCardProps) {
   const statusColors = {
     draft: "bg-gray-500",
@@ -66,30 +73,54 @@ export function ComicCard({
             <Link href={`/comics/${id}`} className="flex-1">
               <h3 className="font-semibold truncate">{title}</h3>
             </Link>
-            <Badge className={statusColors[status]}>
-              {statusLabels[status]}
-            </Badge>
+            <div className="flex gap-1">
+              {isPublic !== undefined && (
+                <Badge variant={isPublic ? "default" : "secondary"}>
+                  {isPublic ? "Public" : "Private"}
+                </Badge>
+              )}
+              <Badge className={statusColors[status]}>
+                {statusLabels[status]}
+              </Badge>
+            </div>
           </div>
           {panelCount && (
             <p className="text-sm text-muted-foreground">
               {panelCount} panels
             </p>
           )}
-          <div className="flex gap-2 w-full">
-            <Button variant="ghost" size="sm" asChild>
-              <Link href={`/comics/${id}/edit`}>
-                <Edit className="h-4 w-4" />
-              </Link>
-            </Button>
-            <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => onDelete(id)}
-              >
-                <Trash2 className="h-4 w-4" />
+          <div className="flex items-center justify-between w-full">
+            <div className="flex gap-2">
+              {onVisibilityToggle && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onVisibilityToggle(id, !isPublic)}
+                  title={isPublic ? "Make private" : "Make public"}
+                >
+                  {isPublic ? <Eye className="h-4 w-4" /> : <EyeOff className="h-4 w-4" />}
+                </Button>
+              )}
+              <Button variant="ghost" size="sm" asChild>
+                <Link href={`/comics/${id}/edit`}>
+                  <Edit className="h-4 w-4" />
+                </Link>
               </Button>
-            </motion.div>
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.9 }}>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => onDelete(id)}
+                >
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </motion.div>
+            </div>
+            {createdAt && (
+              <span className="text-xs text-foreground/60 font-medium">
+                {formatRelativeTime(createdAt)}
+              </span>
+            )}
           </div>
         </CardFooter>
       </Card>

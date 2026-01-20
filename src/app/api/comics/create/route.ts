@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { title, description, inputType, inputUrl, artStyle, tone, subject, outputFormat, pageSize, requestedPanelCount } = body;
+    const { title, description, inputType, inputUrl, artStyle, tone, subject, outputFormat, pageSize, requestedPanelCount, isPublic } = body;
 
     // Validate required fields
     if (!title || !inputType || !subject) {
@@ -112,7 +112,7 @@ export async function POST(req: NextRequest) {
         pageSize: pageSize || "letter",
         requestedPanelCount: requestedPanelCount || null,
         status: "draft",
-        isPublic: false,
+        isPublic: isPublic ?? false,
       })
       .returning();
 

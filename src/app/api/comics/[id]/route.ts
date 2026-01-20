@@ -16,7 +16,7 @@ export async function PATCH(
 
   const { id } = await params;
   const body = await req.json();
-  const { panels: panelsData } = body;
+  const { panels: panelsData, isPublic } = body;
 
   // Verify ownership
   const comic = await db.query.comics.findFirst({
@@ -27,20 +27,29 @@ export async function PATCH(
     return Response.json({ error: "Unauthorized" }, { status: 401 });
   }
 
-  // Update each panel
-  for (const panel of panelsData) {
-    await db.update(panels)
-      .set({
-        textBox: panel.textBox,
-        speechBubbles: panel.speechBubbles,
-        bubblePositions: panel.bubblePositions,
-      })
-      .where(
-        and(
-          eq(panels.id, panel.id),
-          eq(panels.comicId, id)
-        )
-      );
+  // Update each panel if provided
+  if (Array.isArray(panelsData)) {
+    for (const panel of panelsData) {
+      await db.update(panels)
+        .set({
+          textBox: panel.textBox,
+          speechBubbles: panel.speechBubbles,
+          bubblePositions: panel.bubblePositions,
+        })
+        .where(
+          and(
+            eq(panels.id, panel.id),
+            eq(panels.comicId, id)
+          )
+        );
+    }
+  }
+
+  // Update comic visibility if provided
+  if (typeof isPublic === "boolean") {
+    await db.update(comics)
+      .set({ isPublic })
+      .where(eq(comics.id, id));
   }
 
   return Response.json({ success: true });

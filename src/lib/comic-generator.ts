@@ -411,6 +411,16 @@ export async function generateComic(
     // Step 3: Generate panel scripts
     const scripts = await generatePanelScripts(analysis, options);
 
+    // Set panelCount in metadata early so UI shows correct progress
+    await db
+      .update(comics)
+      .set({
+        metadata: {
+          panelCount: scripts.length,
+        },
+      })
+      .where(eq(comics.id, comicId));
+
     // Step 4: Generate images for each panel sequentially to maintain character context
     let characterReference = "";
     let characterContext = "";
@@ -446,7 +456,7 @@ export async function generateComic(
       characterContext += ` | Panel ${script.panelNumber}: ${script.description}`;
     }
 
-    // Update status to completed
+    // Update status to completed with final metadata
     await db
       .update(comics)
       .set({

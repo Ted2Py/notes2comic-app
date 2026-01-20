@@ -14,6 +14,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import { FileUploader } from "@/components/upload/file-uploader";
 import { useSession } from "@/lib/auth-client";
@@ -49,6 +50,7 @@ export default function CreatePage() {
   const [panelCount, setPanelCount] = useState(4);
   const [error, setError] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isPublic, setIsPublic] = useState(false);
 
   useEffect(() => {
     if (!isPending && !session) {
@@ -114,6 +116,7 @@ export default function CreatePage() {
           outputFormat,
           pageSize,
           requestedPanelCount: panelCount,
+          isPublic,
         }),
       });
 
@@ -291,6 +294,17 @@ export default function CreatePage() {
               {/* Panel Count */}
               <div className="space-y-3">
                 <PanelCountSelector value={panelCount} onChange={setPanelCount} />
+              </div>
+
+              {/* Public Toggle */}
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Make Public</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Allow others to see this comic in the gallery
+                  </p>
+                </div>
+                <Switch checked={isPublic} onCheckedChange={setIsPublic} />
               </div>
             </CardContent>
           </Card>

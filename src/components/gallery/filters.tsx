@@ -37,35 +37,44 @@ export function GalleryFilters() {
   };
 
   return (
-    <div className="mb-8 space-y-4">
-      <div className="flex flex-wrap gap-2">
-        {subjects.map((subject) => (
-          <Button
-            key={subject}
-            variant={currentSubject === subject || (subject === "All" && !currentSubject) ? "default" : "outline"}
-            size="sm"
-            onClick={() => handleSubjectChange(subject)}
-          >
-            {subject}
-          </Button>
-        ))}
+    <div className="mb-8 space-y-6">
+      <div>
+        <h3 className="text-sm font-medium mb-3 text-muted-foreground">Filter by Subject</h3>
+        <div className="flex flex-wrap gap-2">
+          {subjects.map((subject) => (
+            <Button
+              key={subject}
+              variant={currentSubject === subject || (subject === "All" && !currentSubject) ? "default" : "outline"}
+              size="sm"
+              onClick={() => handleSubjectChange(subject)}
+              className="transition-all duration-200"
+            >
+              {subject}
+            </Button>
+          ))}
+        </div>
       </div>
 
-      <div className="flex gap-2">
-        <Button
-          variant={currentSort === "recent" ? "default" : "outline"}
-          size="sm"
-          onClick={() => handleSortChange("recent")}
-        >
-          Most Recent
-        </Button>
-        <Button
-          variant={currentSort === "popular" ? "default" : "outline"}
-          size="sm"
-          onClick={() => handleSortChange("popular")}
-        >
-          Most Popular
-        </Button>
+      <div>
+        <h3 className="text-sm font-medium mb-3 text-muted-foreground">Sort By</h3>
+        <div className="flex gap-2">
+          <Button
+            variant={currentSort === "recent" ? "default" : "outline"}
+            size="sm"
+            onClick={() => handleSortChange("recent")}
+            className="transition-all duration-200"
+          >
+            Most Recent
+          </Button>
+          <Button
+            variant={currentSort === "popular" ? "default" : "outline"}
+            size="sm"
+            onClick={() => handleSortChange("popular")}
+            className="transition-all duration-200"
+          >
+            Most Popular
+          </Button>
+        </div>
       </div>
     </div>
   );

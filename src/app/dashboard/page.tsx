@@ -57,6 +57,29 @@ export default function DashboardPage() {
     }
   };
 
+  const handleVisibilityToggle = async (id: string, isPublic: boolean) => {
+    // Optimistically update the UI
+    const previousComics = [...comics];
+    setComics(comics.map((c) => (c.id === id ? { ...c, isPublic } : c)));
+
+    try {
+      const response = await fetch(`/api/comics/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isPublic }),
+      });
+      if (!response.ok) {
+        // Revert on error
+        setComics(previousComics);
+        console.error("Failed to update visibility");
+      }
+    } catch (error) {
+      // Revert on error
+      setComics(previousComics);
+      console.error("Failed to update visibility:", error);
+    }
+  };
+
   if (isPending) {
     return (
       <div className="flex justify-center items-center h-screen">
@@ -93,7 +116,10 @@ export default function DashboardPage() {
               {...comic}
               thumbnailUrl={comic.panels?.[0]?.imageUrl}
               panelCount={comic.metadata?.panelCount}
+              isPublic={comic.isPublic}
+              createdAt={comic.createdAt}
               onDelete={handleDelete}
+              onVisibilityToggle={handleVisibilityToggle}
             />
           ))}
         </div>

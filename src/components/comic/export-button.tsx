@@ -1,9 +1,17 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Loader2 } from "lucide-react";
+import { Download, Loader2, FileText, Image } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+  DropdownMenuSeparator,
+  DropdownMenuLabel,
+} from "@/components/ui/dropdown-menu";
 
 interface ExportButtonProps {
   comicId: string;
@@ -20,10 +28,12 @@ export function ExportButton({
 }: ExportButtonProps) {
   const [exporting, setExporting] = useState(false);
 
-  const handleExport = async () => {
+  const handleExport = async (includeCaptions: boolean) => {
     setExporting(true);
     try {
-      const response = await fetch(`/api/comics/${comicId}/export`);
+      const response = await fetch(
+        `/api/comics/${comicId}/export?includeCaptions=${includeCaptions}`
+      );
       if (response.ok) {
         const blob = await response.blob();
         const url = window.URL.createObjectURL(blob);
@@ -48,23 +58,34 @@ export function ExportButton({
   };
 
   return (
-    <Button
-      onClick={handleExport}
-      disabled={exporting}
-      variant={variant}
-      size={size}
-    >
-      {exporting ? (
-        <>
-          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-          Exporting...
-        </>
-      ) : (
-        <>
-          <Download className="h-4 w-4 mr-2" />
-          Export PDF
-        </>
-      )}
-    </Button>
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button disabled={exporting} variant={variant} size={size}>
+          {exporting ? (
+            <>
+              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              Exporting...
+            </>
+          ) : (
+            <>
+              <Download className="h-4 w-4 mr-2" />
+              Export PDF
+            </>
+          )}
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="end">
+        <DropdownMenuLabel>Export Options</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        <DropdownMenuItem onClick={() => handleExport(false)}>
+          <Image className="h-4 w-4 mr-2" />
+          Panels only
+        </DropdownMenuItem>
+        <DropdownMenuItem onClick={() => handleExport(true)}>
+          <FileText className="h-4 w-4 mr-2" />
+          With captions
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   );
 }

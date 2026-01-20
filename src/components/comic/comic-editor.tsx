@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Save, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
 import type { comics, panels, SpeechBubble } from "@/lib/schema";
 import { cn } from "@/lib/utils";
@@ -19,6 +20,7 @@ export function ComicEditor({ comic }: { comic: Comic & { panels: Panel[] } }) {
   const [selectedPanelId, setSelectedPanelId] = useState(panels[0]?.id);
   const [saving, setSaving] = useState(false);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [isPublic, setIsPublic] = useState(comic.isPublic);
 
   const selectedPanel = panels.find(p => p.id === selectedPanelId);
 
@@ -255,6 +257,41 @@ export function ComicEditor({ comic }: { comic: Comic & { panels: Panel[] } }) {
           <Save className="h-4 w-4 mr-2" />
           {saving ? "Saving..." : "Save Changes"}
         </Button>
+
+        <div className="p-4 bg-muted/50 rounded space-y-3">
+          <p className="font-medium">Visibility</p>
+          <div className="flex items-center justify-between">
+            <span className="text-sm">Public</span>
+            <Switch
+              checked={isPublic}
+              onCheckedChange={async (checked) => {
+                const previousValue = isPublic;
+                // Optimistically update UI
+                setIsPublic(checked);
+
+                try {
+                  const response = await fetch(`/api/comics/${comic.id}`, {
+                    method: "PATCH",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ isPublic: checked }),
+                  });
+                  if (!response.ok) {
+                    // Revert on error
+                    setIsPublic(previousValue);
+                    console.error("Failed to update visibility");
+                  }
+                } catch (error) {
+                  // Revert on error
+                  setIsPublic(previousValue);
+                  console.error("Failed to update visibility:", error);
+                }
+              }}
+            />
+          </div>
+          <p className="text-xs text-muted-foreground">
+            {isPublic ? "Visible in public gallery" : "Private - only you can see"}
+          </p>
+        </div>
 
         <div className="p-4 bg-muted/50 rounded text-sm">
           <p className="font-medium mb-2">Tips:</p>

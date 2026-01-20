@@ -40,8 +40,8 @@ export async function GET(
 
     const { searchParams } = new URL(req.url);
     const options = {
-      includeTitle: searchParams.get("includeTitle") !== "false",
       watermark: comic.isPublic, // Watermark public comics
+      includeCaptions: searchParams.get("includeCaptions") !== "false",
     };
 
     const pdfBlob = await exportComicToPDF(comic, options);
