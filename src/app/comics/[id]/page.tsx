@@ -2,13 +2,18 @@ import { headers } from "next/headers";
 import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { eq, asc } from "drizzle-orm";
-import { ArrowLeft, Edit } from "lucide-react";
+import { ArrowLeft, Edit, Heart, MessageCircle } from "lucide-react";
+import { ComicComments } from "@/components/comic/comic-comments";
 import { ComicStripView } from "@/components/comic/comic-strip-view";
 import { ExportButton } from "@/components/comic/export-button";
+import { LikeButton } from "@/components/comic/like-button";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { comics, panels } from "@/lib/schema";
+import { comics, panels, likes } from "@/lib/schema";
 
 export default async function ComicPage({
   params,
@@ -20,15 +25,20 @@ export default async function ComicPage({
     headers: await headers(),
   });
 
-  if (!session) {
-    redirect("/login");
-  }
-
+  // Allow public viewing without login
   const comic = await db.query.comics.findFirst({
     where: eq(comics.id, id),
     with: {
       panels: {
         orderBy: [asc(panels.panelNumber)],
+      },
+      user: {
+        columns: {
+          id: true,
+          name: true,
+          image: true,
+          bio: true,
+        },
       },
     },
   });
@@ -37,11 +47,24 @@ export default async function ComicPage({
     notFound();
   }
 
-  if (comic.userId !== session.user.id && !comic.isPublic) {
-    redirect("/dashboard");
+  // Require login for private comics
+  if (!comic.isPublic && (!session || comic.userId !== session.user.id)) {
+    redirect("/login");
   }
 
-  const isOwner = comic.userId === session.user.id;
+  const isOwner = session?.user.id === comic.userId;
+
+  // Fetch like count
+  const comicLikes = await db.query.likes.findMany({
+    where: eq(likes.comicId, id),
+  });
+  const totalLikes = comicLikes.length;
+
+  // Check if current user has liked
+  let initialLiked = false;
+  if (session) {
+    initialLiked = comicLikes.some((like) => like.userId === session.user.id);
+  }
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
@@ -77,7 +100,7 @@ export default async function ComicPage({
               </Button>
             </form>
           )}
-          <ExportButton comicId={comic.id} comicTitle={comic.title} outputFormat={comic.outputFormat} />
+          <ExportButton comicId={comic.id} comicTitle={comic.title} />
           {isOwner && (
             <Button asChild variant="outline">
               <Link href={`/comics/${comic.id}/edit`}>
@@ -89,12 +112,71 @@ export default async function ComicPage({
         </div>
       </div>
 
+      {/* Creator Info */}
+      <Card className="mb-6">
+        <CardContent className="p-4">
+          <div className="flex items-start gap-4">
+            <Link href={`/profile/${comic.user.id}`} className="shrink-0">
+              <Avatar className="h-14 w-14">
+                <AvatarImage src={comic.user.image || undefined} />
+                <AvatarFallback className="text-lg">
+                  {comic.user.name.charAt(0).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
+            </Link>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2">
+                <Link
+                  href={`/profile/${comic.user.id}`}
+                  className="font-semibold hover:underline"
+                >
+                  {comic.user.name}
+                </Link>
+                {comic.user.bio && (
+                  <span className="text-sm text-muted-foreground">· {comic.user.bio}</span>
+                )}
+              </div>
+              <p className="text-sm text-muted-foreground">
+                {isOwner ? "Created by you" : "Creator"}
+              </p>
+            </div>
+            <Button asChild variant="outline" size="sm">
+              <Link href={`/profile/${comic.user.id}`}>
+                View Profile
+              </Link>
+            </Button>
+          </div>
+          <div className="flex items-center gap-4 text-sm mt-4">
+            <div className="flex items-center gap-1">
+              <Heart className="h-4 w-4" />
+              <span className="font-medium">{totalLikes} likes</span>
+            </div>
+            <Badge variant="outline">{comic.subject}</Badge>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Comic View */}
       <ComicStripView
         panels={comic.panels}
         outputFormat={comic.outputFormat}
         borderStyle={comic.borderStyle}
         showCaptions={comic.showCaptions}
       />
+
+      {/* Like Button */}
+      <div className="mt-6 flex justify-center">
+        <LikeButton comicId={comic.id} comicUserId={comic.userId} initialLiked={initialLiked} initialLikes={totalLikes} />
+      </div>
+
+      {/* Comments Section */}
+      <div className="mt-12">
+        <h2 className="text-2xl font-bold mb-6 flex items-center gap-2">
+          <MessageCircle className="h-6 w-6" />
+          Comments
+        </h2>
+        <ComicComments comicId={comic.id} />
+      </div>
     </div>
   );
 }

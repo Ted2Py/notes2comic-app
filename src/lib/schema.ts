@@ -12,6 +12,7 @@ export const user = pgTable(
     email: text("email").notNull().unique(),
     emailVerified: boolean("email_verified").default(false).notNull(),
     image: text("image"),
+    bio: text("bio"),
     createdAt: timestamp("created_at").defaultNow().notNull(),
     updatedAt: timestamp("updated_at")
       .defaultNow()
@@ -191,6 +192,8 @@ export const comments = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
     content: text("content").notNull(),
+    isCensored: boolean("is_censored").default(false).notNull(),
+    censoredContent: text("censored_content"), // The censored version displayed to users
     createdAt: timestamp("created_at").defaultNow().notNull(),
   },
   (table) => [

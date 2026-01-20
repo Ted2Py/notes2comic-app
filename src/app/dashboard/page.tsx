@@ -81,96 +81,96 @@ export default function DashboardPage() {
     }
   };
 
-  if (isPending) {
-    return (
-      <div className="flex justify-center items-center h-screen">
-        Loading...
-      </div>
-    );
-  }
-
-  if (!session) {
+  if (!session && !isPending) {
     return null;
   }
 
   return (
     <div className="container mx-auto p-6">
-      <div className="flex items-center justify-between mb-8">
-        <h1 className="text-3xl font-bold">My Comics</h1>
-        <Button asChild>
-          <Link href="/create">
-            <Plus className="h-4 w-4 mr-2" />
-            Create New Comic
-          </Link>
-        </Button>
-      </div>
-
-      {loading ? (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground">Loading your comics...</p>
+      {isPending ? (
+        <div className="flex justify-center items-center min-h-[50vh]">
+          Loading...
         </div>
-      ) : comics.length > 0 ? (
+      ) : !session ? null : (
         <>
-          {/* Subject Filter */}
-          {(() => {
-            const uniqueSubjects = Array.from(
-              new Set(comics.flatMap((c) => c.tags || [c.subject]))
-            ).sort();
-            return uniqueSubjects.length > 0 ? (
-              <div className="mb-6">
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={selectedSubject === null ? "default" : "outline"}
-                    size="sm"
-                    onClick={() => setSelectedSubject(null)}
-                  >
-                    All Subjects
-                  </Button>
-                  {uniqueSubjects.map((subject) => (
-                    <Button
-                      key={subject}
-                      variant={selectedSubject === subject ? "default" : "outline"}
-                      size="sm"
-                      onClick={() => setSelectedSubject(subject)}
-                    >
-                      {subject}
-                    </Button>
-                  ))}
-                </div>
-              </div>
-            ) : null;
-          })()}
-
-          {/* Comics Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {comics
-              .filter((c) => {
-                if (!selectedSubject) return true;
-                return (c.tags || [c.subject]).includes(selectedSubject);
-              })
-              .map((comic) => (
-                <ComicCard
-                  key={comic.id}
-                  {...comic}
-                  thumbnailUrl={comic.panels?.[0]?.imageUrl}
-                  panelCount={comic.metadata?.panelCount}
-                  isPublic={comic.isPublic}
-                  createdAt={comic.createdAt}
-                  onDelete={handleDelete}
-                  onVisibilityToggle={handleVisibilityToggle}
-                />
-              ))}
+          <div className="flex items-center justify-between mb-8">
+            <h1 className="text-3xl font-bold">My Comics</h1>
+            <Button asChild>
+              <Link href="/create">
+                <Plus className="h-4 w-4 mr-2" />
+                Create New Comic
+              </Link>
+            </Button>
           </div>
+
+          {loading ? (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground">Loading your comics...</p>
+            </div>
+          ) : comics.length > 0 ? (
+            <>
+              {/* Subject Filter */}
+              {(() => {
+                const uniqueSubjects = Array.from(
+                  new Set(comics.flatMap((c) => c.tags || [c.subject]))
+                ).sort();
+                return uniqueSubjects.length > 0 ? (
+                  <div className="mb-6">
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        variant={selectedSubject === null ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => setSelectedSubject(null)}
+                      >
+                        All Subjects
+                      </Button>
+                      {uniqueSubjects.map((subject) => (
+                        <Button
+                          key={subject}
+                          variant={selectedSubject === subject ? "default" : "outline"}
+                          size="sm"
+                          onClick={() => setSelectedSubject(subject)}
+                        >
+                          {subject}
+                        </Button>
+                      ))}
+                    </div>
+                  </div>
+                ) : null;
+              })()}
+
+              {/* Comics Grid */}
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {comics
+                  .filter((c) => {
+                    if (!selectedSubject) return true;
+                    return (c.tags || [c.subject]).includes(selectedSubject);
+                  })
+                  .map((comic) => (
+                    <ComicCard
+                      key={comic.id}
+                      {...comic}
+                      thumbnailUrl={comic.panels?.[0]?.imageUrl}
+                      panelCount={comic.metadata?.panelCount}
+                      isPublic={comic.isPublic}
+                      createdAt={comic.createdAt}
+                      onDelete={handleDelete}
+                      onVisibilityToggle={handleVisibilityToggle}
+                    />
+                  ))}
+              </div>
+            </>
+          ) : (
+            <div className="text-center py-12">
+              <p className="text-muted-foreground mb-4">
+                You haven&apos;t created any comics yet.
+              </p>
+              <Button asChild>
+                <Link href="/create">Create Your First Comic</Link>
+              </Button>
+            </div>
+          )}
         </>
-      ) : (
-        <div className="text-center py-12">
-          <p className="text-muted-foreground mb-4">
-            You haven&apos;t created any comics yet.
-          </p>
-          <Button asChild>
-            <Link href="/create">Create Your First Comic</Link>
-          </Button>
-        </div>
       )}
     </div>
   );

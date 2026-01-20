@@ -13,10 +13,16 @@ import {
   Sparkles,
   Palette,
   BarChart3,
+  Camera,
+  Loader2,
+  Pencil,
+  Check,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { StyleSelector } from "@/components/comic/style-selector";
 import { ToneSelector } from "@/components/comic/tone-selector";
+import { ImageCropDialog } from "@/components/profile/image-crop-dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -37,7 +43,8 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
-import { useSession } from "@/lib/auth-client";
+import { Textarea } from "@/components/ui/textarea";
+import { useSession, getSession } from "@/lib/auth-client";
 
 interface UsageStats {
   totalComics: number;
@@ -65,6 +72,23 @@ export default function ProfilePage() {
     apiKey: "",
   });
 
+  // Profile editing state
+  const [editName, setEditName] = useState("");
+  const [editBio, setEditBio] = useState("");
+  const [editImage, setEditImage] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>("");
+  const [isSaving, setIsSaving] = useState(false);
+
+  // Inline bio editing state
+  const [isEditingBio, setIsEditingBio] = useState(false);
+  const [inlineBio, setInlineBio] = useState("");
+  const [isSavingBio, setIsSavingBio] = useState(false);
+
+  // Image crop dialog state
+  const [cropDialogOpen, setCropDialogOpen] = useState(false);
+  const [originalImageSrc, setOriginalImageSrc] = useState<string>("");
+  const [croppedImageBlob, setCroppedImageBlob] = useState<Blob | null>(null);
+
   useEffect(() => {
     if (!isPending && !session) {
       router.push("/");
@@ -82,7 +106,7 @@ export default function ProfilePage() {
           const completed = comics.filter((c: any) => c.status === "completed");
           const drafts = comics.filter((c: any) => c.status === "draft");
           const totalPanels = comics.reduce(
-            (sum: number, c: any) => sum + (c.panels?.length || 0),
+            (sum: number, c: any) => sum + (c.metadata?.panelCount || c.panels?.length || 0),
             0
           );
 
@@ -118,10 +142,161 @@ export default function ProfilePage() {
       })
     : null;
 
-  const handleEditProfileSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleEditProfileSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    toast.info("Profile updates require backend implementation");
-    setEditProfileOpen(false);
+    setIsSaving(true);
+
+    try {
+      const formData = new FormData();
+      formData.append("name", editName);
+      formData.append("bio", editBio);
+
+      // Use cropped image if available, otherwise use original file
+      const imageToUpload = croppedImageBlob || editImage;
+      if (imageToUpload) {
+        const file = croppedImageBlob
+          ? new File([croppedImageBlob], "profile-cropped.jpg", { type: "image/jpeg" })
+          : editImage!;
+        formData.append("image", file);
+      }
+
+      const response = await fetch("/api/user/profile", {
+        method: "PATCH",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update profile");
+      }
+
+      // Refresh session data
+      await getSession();
+
+      toast.success("Profile updated successfully!");
+      setEditProfileOpen(false);
+      setEditImage(null);
+      setImagePreview("");
+      setCroppedImageBlob(null);
+    } catch (error) {
+      console.error("Failed to update profile:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to update profile");
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setOriginalImageSrc(reader.result as string);
+        setCropDialogOpen(true);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleCropComplete = async (croppedBlob: Blob) => {
+    setIsSaving(true);
+    try {
+      const formData = new FormData();
+      const file = new File([croppedBlob], "profile-cropped.jpg", { type: "image/jpeg" });
+      formData.append("image", file);
+
+      const response = await fetch("/api/user/profile", {
+        method: "PATCH",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update profile image");
+      }
+
+      // Update local user data immediately
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        if (session?.user) {
+          (session.user as any).image = reader.result;
+        }
+        setImagePreview(reader.result as string);
+      };
+      reader.readAsDataURL(croppedBlob);
+
+      await getSession();
+      toast.success("Profile image updated!", {
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error("Failed to update profile image:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to update profile image", {
+        duration: 2000,
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const openEditProfile = () => {
+    setEditName(user.name || "");
+    setEditBio((user as any).bio || "");
+    setImagePreview(user.image || "");
+    setEditImage(null);
+    setEditProfileOpen(true);
+  };
+
+  const handleInlineBioSave = async () => {
+    setIsSavingBio(true);
+    try {
+      const formData = new FormData();
+      formData.append("bio", inlineBio);
+
+      const response = await fetch("/api/user/profile", {
+        method: "PATCH",
+        body: formData,
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.error || "Failed to update bio");
+      }
+
+      // Update local user data immediately
+      if (session?.user) {
+        (session.user as any).bio = inlineBio;
+      }
+
+      await getSession();
+      setIsEditingBio(false);
+      toast.success("Bio updated successfully!", {
+        duration: 2000,
+      });
+    } catch (error) {
+      console.error("Failed to update bio:", error);
+      toast.error(error instanceof Error ? error.message : "Failed to update bio", {
+        duration: 2000,
+      });
+    } finally {
+      setIsSavingBio(false);
+    }
+  };
+
+  const startInlineBioEdit = () => {
+    setInlineBio((user as any).bio || "");
+    setIsEditingBio(true);
+  };
+
+  const handleProfileImageClick = () => {
+    // Trigger the image input click
+    const input = document.getElementById("profile-image-upload") as HTMLInputElement;
+    input?.click();
+  };
+
+  const cancelInlineBioEdit = () => {
+    setIsEditingBio(false);
+    setInlineBio("");
   };
 
   const handleSaveComicSettings = () => {
@@ -149,16 +324,31 @@ export default function ProfilePage() {
         <Card>
           <CardHeader>
             <div className="flex items-center space-x-4">
-              <Avatar className="h-20 w-20">
-                <AvatarImage
-                  src={user.image || ""}
-                  alt={user.name || "User"}
-                  referrerPolicy="no-referrer"
+              <div className="group relative">
+                <Avatar
+                  className="h-20 w-20 cursor-pointer"
+                  onClick={handleProfileImageClick}
+                >
+                  <AvatarImage
+                    src={user.image || ""}
+                    alt={user.name || "User"}
+                    referrerPolicy="no-referrer"
+                  />
+                  <AvatarFallback className="text-lg">
+                    {(user.name?.[0] || user.email?.[0] || "U").toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="absolute inset-0 bg-black/50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center cursor-pointer" onClick={handleProfileImageClick}>
+                  <Camera className="h-6 w-6 text-white" />
+                </div>
+                <input
+                  id="profile-image-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleImageChange}
                 />
-                <AvatarFallback className="text-lg">
-                  {(user.name?.[0] || user.email?.[0] || "U").toUpperCase()}
-                </AvatarFallback>
-              </Avatar>
+              </div>
               <div className="space-y-2">
                 <h2 className="text-2xl font-semibold">{user.name}</h2>
                 <div className="flex items-center gap-2 text-muted-foreground">
@@ -180,6 +370,66 @@ export default function ProfilePage() {
                     <span>Member since {createdDate}</span>
                   </div>
                 )}
+                {/* Inline Bio Editor */}
+                <div className="mt-3">
+                  {isEditingBio ? (
+                    <div className="space-y-2">
+                      <Textarea
+                        value={inlineBio}
+                        onChange={(e) => setInlineBio(e.target.value)}
+                        placeholder="Tell others about yourself..."
+                        rows={2}
+                        maxLength={500}
+                        className="resize-none"
+                        autoFocus
+                      />
+                      <div className="flex items-center justify-between">
+                        <span className="text-xs text-muted-foreground">
+                          {inlineBio.length}/500
+                        </span>
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            onClick={cancelInlineBioEdit}
+                            disabled={isSavingBio}
+                          >
+                            <X className="h-3 w-3 mr-1" />
+                            Cancel
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={handleInlineBioSave}
+                            disabled={isSavingBio}
+                          >
+                            {isSavingBio ? (
+                              <Loader2 className="h-3 w-3 mr-1 animate-spin" />
+                            ) : (
+                              <Check className="h-3 w-3 mr-1" />
+                            )}
+                            Save
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="group relative">
+                      <p className="text-sm text-muted-foreground pr-6">
+                        {(user as any).bio || (
+                          <span className="italic text-muted-foreground/60">No bio yet</span>
+                        )}
+                      </p>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="absolute top-0 right-0 h-6 w-6 p-0 opacity-0 group-hover:opacity-100 transition-opacity"
+                        onClick={startInlineBioEdit}
+                      >
+                        <Pencil className="h-3 w-3" />
+                      </Button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
           </CardHeader>
@@ -332,7 +582,7 @@ export default function ProfilePage() {
               <Button
                 variant="outline"
                 className="justify-start h-auto p-4"
-                onClick={() => setEditProfileOpen(true)}
+                onClick={openEditProfile}
               >
                 <User className="h-4 w-4 mr-2" />
                 <div className="text-left">
@@ -366,19 +616,68 @@ export default function ProfilePage() {
           <DialogHeader>
             <DialogTitle>Edit Profile</DialogTitle>
             <DialogDescription>
-              Update your profile information. Changes will be saved to your
-              account.
+              Update your profile information. Changes will be saved to your account.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleEditProfileSubmit} className="space-y-4">
+            {/* Profile Image Upload */}
+            <div className="space-y-2">
+              <Label>Profile Image</Label>
+              <div className="flex items-center gap-4">
+                <Avatar className="h-16 w-16">
+                  <AvatarImage src={imagePreview || undefined} />
+                  <AvatarFallback>
+                    {editName.charAt(0).toUpperCase()}
+                  </AvatarFallback>
+                </Avatar>
+                <div className="flex-1">
+                  <Label
+                    htmlFor="image-upload"
+                    className="cursor-pointer inline-flex items-center gap-2 px-3 py-2 text-sm border rounded-md hover:bg-muted"
+                  >
+                    <Camera className="h-4 w-4" />
+                    {editImage ? "Change Image" : "Upload Image"}
+                  </Label>
+                  <input
+                    id="image-upload"
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={handleImageChange}
+                  />
+                  <p className="text-xs text-muted-foreground mt-1">
+                    JPG, PNG or GIF. Max 5MB.
+                  </p>
+                </div>
+              </div>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="name">Full Name</Label>
               <Input
                 id="name"
-                defaultValue={user.name || ""}
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
                 placeholder="Enter your name"
+                required
               />
             </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="bio">Bio</Label>
+              <Textarea
+                id="bio"
+                value={editBio}
+                onChange={(e) => setEditBio(e.target.value)}
+                placeholder="Tell others about yourself..."
+                rows={3}
+                maxLength={500}
+              />
+              <p className="text-xs text-muted-foreground text-right">
+                {editBio.length}/500
+              </p>
+            </div>
+
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input
@@ -389,18 +688,33 @@ export default function ProfilePage() {
                 className="bg-muted"
               />
               <p className="text-xs text-muted-foreground">
-                Email cannot be changed for OAuth accounts
+                Email cannot be changed
               </p>
             </div>
+
             <div className="flex justify-end gap-2 pt-4">
               <Button
                 type="button"
                 variant="outline"
-                onClick={() => setEditProfileOpen(false)}
+                onClick={() => {
+                  setEditProfileOpen(false);
+                  setEditImage(null);
+                  setImagePreview("");
+                }}
+                disabled={isSaving}
               >
                 Cancel
               </Button>
-              <Button type="submit">Save Changes</Button>
+              <Button type="submit" disabled={isSaving}>
+                {isSaving ? (
+                  <>
+                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                    Saving...
+                  </>
+                ) : (
+                  "Save Changes"
+                )}
+              </Button>
             </div>
           </form>
         </DialogContent>
@@ -540,6 +854,14 @@ export default function ProfilePage() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Image Crop Dialog */}
+      <ImageCropDialog
+        open={cropDialogOpen}
+        onClose={() => setCropDialogOpen(false)}
+        imageSrc={originalImageSrc}
+        onCropComplete={handleCropComplete}
+      />
     </div>
   );
 }

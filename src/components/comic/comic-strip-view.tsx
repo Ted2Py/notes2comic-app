@@ -1,3 +1,5 @@
+"use client";
+
 import type { panels } from "@/lib/schema";
 import { SpeechBubbleOverlay } from "./speech-bubble-overlay";
 
@@ -27,7 +29,7 @@ export function ComicStripView({ panels, outputFormat, borderStyle: _borderStyle
             {showCaptions && panel.textBox && (
               <div className="mt-3 p-3 bg-muted/50 rounded text-sm border border-border">
                 <div className="font-medium text-xs text-muted-foreground mb-1">
-                  Caption:
+                  Narrator:
                 </div>
                 {panel.textBox}
               </div>
@@ -38,11 +40,34 @@ export function ComicStripView({ panels, outputFormat, borderStyle: _borderStyle
     );
   }
 
+  // Strip format - 4 columns x 3 rows grid with proper comic strip borders and footer
   if (outputFormat === "strip") {
     return (
-      <div className="flex flex-wrap gap-1 justify-center border-4 border-black p-2 bg-white">
+      <div className="inline-flex flex-col items-center bg-white p-4 border-4 border-black rounded">
+        <div className="grid grid-cols-4 gap-0">
+          {sortedPanels.map((panel) => (
+            <div key={panel.id} className="border-r border-b border-black last:border-r-0">
+              <SpeechBubbleOverlay
+                imageUrl={panel.imageUrl}
+                bubbles={panel.speechBubbles || []}
+                positions={panel.bubblePositions || []}
+              />
+            </div>
+          ))}
+        </div>
+        <div className="w-full mt-3 pt-2 border-t-2 border-black text-center">
+          <p className="text-sm font-medium text-gray-700">Created by Notes2Comic</p>
+        </div>
+      </div>
+    );
+  }
+
+  // fullpage - grid layout (4x3 for 12 panels) with footer
+  return (
+    <div className="inline-flex flex-col items-center bg-white p-4 border-4 border-black rounded">
+      <div className="grid grid-cols-4 gap-0">
         {sortedPanels.map((panel) => (
-          <div key={panel.id} className="relative flex-1 min-w-[200px] border-r-2 border-black last:border-r-0">
+          <div key={panel.id} className="relative border-r border-b border-black last:border-r-0">
             <SpeechBubbleOverlay
               imageUrl={panel.imageUrl}
               bubbles={panel.speechBubbles || []}
@@ -51,21 +76,9 @@ export function ComicStripView({ panels, outputFormat, borderStyle: _borderStyle
           </div>
         ))}
       </div>
-    );
-  }
-
-  // fullpage - grid layout
-  return (
-    <div className="grid grid-cols-3 gap-1 border-4 border-black p-2 bg-white">
-      {sortedPanels.map((panel) => (
-        <div key={panel.id} className="relative border border-black">
-          <SpeechBubbleOverlay
-            imageUrl={panel.imageUrl}
-            bubbles={panel.speechBubbles || []}
-            positions={panel.bubblePositions || []}
-          />
-        </div>
-      ))}
+      <div className="w-full mt-3 pt-2 border-t-2 border-black text-center">
+        <p className="text-sm font-medium text-gray-700">Created by Notes2Comic</p>
+      </div>
     </div>
   );
 }

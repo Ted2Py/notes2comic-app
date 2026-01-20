@@ -11,6 +11,8 @@ export async function GET(req: NextRequest) {
     const limit = parseInt(searchParams.get("limit") || "12");
     const offset = (page - 1) * limit;
     const subject = searchParams.get("subject");
+    const inputType = searchParams.get("inputType");
+    const pageSize = searchParams.get("pageSize");
     const sortBy = searchParams.get("sort") || "recent"; // recent, popular
 
     let orderBy = desc(comics.createdAt);
@@ -18,12 +20,18 @@ export async function GET(req: NextRequest) {
       orderBy = sql`CAST(COALESCE(comics.metadata->>'likes', '0') AS INTEGER) DESC`;
     }
 
-    let whereClause;
+    // Build where clause with filters
+    const conditions = [eq(comics.isPublic, true)];
     if (subject) {
-      whereClause = and(eq(comics.isPublic, true), eq(comics.subject, subject));
-    } else {
-      whereClause = eq(comics.isPublic, true);
+      conditions.push(eq(comics.subject, subject));
     }
+    if (inputType) {
+      conditions.push(eq(comics.inputType, inputType as any));
+    }
+    if (pageSize) {
+      conditions.push(eq(comics.pageSize, pageSize as any));
+    }
+    const whereClause = conditions.length > 1 ? and(...conditions) : conditions[0];
 
     const publicComics = await db.query.comics.findMany({
       where: whereClause,
@@ -34,6 +42,13 @@ export async function GET(req: NextRequest) {
         panels: {
           limit: 1,
           orderBy: [asc(panels.panelNumber)],
+        },
+        user: {
+          columns: {
+            id: true,
+            name: true,
+            image: true,
+          },
         },
       },
     });

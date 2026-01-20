@@ -36,6 +36,20 @@
       "when": 1768888764996,
       "tag": "0004_ambiguous_falcon",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1768921224623,
+      "tag": "0005_sturdy_kulan_gath",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1768923065406,
+      "tag": "0006_bent_skrulls",
+      "breakpoints": true
     }
   ]
 }

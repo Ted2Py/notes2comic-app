@@ -8,14 +8,15 @@ import { Card } from "@/components/ui/card";
 
 interface PanelLoadingProps {
   comicId: string;
+  totalPanels: number;
   onComplete: () => void;
   onError?: (error: string) => void;
 }
 
-export function PanelLoading({ comicId, onComplete, onError }: PanelLoadingProps) {
+export function PanelLoading({ comicId, totalPanels: initialTotalPanels, onComplete, onError }: PanelLoadingProps) {
   const [status, setStatus] = useState<"generating" | "completed" | "failed">("generating");
   const [currentPanel, setCurrentPanel] = useState(0);
-  const [totalPanels, setTotalPanels] = useState(4);
+  const [totalPanels, setTotalPanels] = useState(initialTotalPanels);
   const [showConfetti, setShowConfetti] = useState(false);
 
   useEffect(() => {

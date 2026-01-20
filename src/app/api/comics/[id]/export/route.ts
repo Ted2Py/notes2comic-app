@@ -38,10 +38,8 @@ export async function GET(
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { searchParams } = new URL(req.url);
     const options = {
-      watermark: comic.isPublic, // Watermark public comics
-      includeCaptions: searchParams.get("includeCaptions") !== "false",
+      watermark: comic.isPublic,
     };
 
     const pdfBlob = await exportComicToPDF(comic, options);

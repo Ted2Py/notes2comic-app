@@ -2,6 +2,7 @@ import { randomUUID } from "crypto";
 import { eq } from "drizzle-orm";
 import { db } from "./db";
 import { getModel, GEMINI_PRO_MODEL, GEMINI_VISION_MODEL, GEMINI_IMAGE_MODEL } from "./gemini";
+import { processImageBufferToDimensions } from "./image-processor";
 import { extractTextFromPDF } from "./pdf-extractor";
 import { comics, panels } from "./schema";
 import { upload } from "./storage";
@@ -285,31 +286,40 @@ export async function generatePanelScripts(
 
   const model = getModel(GEMINI_PRO_MODEL);
 
-  const prompt = `Create a comic script with ${targetPanelCount} panels.
+  const prompt = `You are creating a ${options.artStyle} style comic with ${targetPanelCount} panels about ${options.subject}.
+The tone should be ${options.tone}.
 
-Subject: ${options.subject}
-Tone: ${options.tone}
-Art style: ${options.artStyle}
-
-Content to explain:
+CONTENT TO ADAPT:
 ${analysis.narrativeStructure}
 
-Key concepts to cover:
+KEY CONCEPTS TO COVER:
 ${analysis.keyConcepts.join(", ")}
 
-For each panel, provide:
-- Panel number
-- Visual description (what the scene looks like)
-- Dialogue (what characters say)
-- Key visual elements (props, backgrounds, etc.)
+CRITICAL INSTRUCTIONS FOR DIALOGUE GENERATION:
+1. Keep dialogue NATURAL and CONCISE - no more than 15-20 words per speech bubble
+2. Include speaker labels when appropriate: "Narrator:" for narration, "Character:" for dialogue
+3. NEVER add parenthetical labels like "(caption)", "(dialogue)", "(narration)" after speaker names
+4. Each panel should have exactly ONE main dialogue or narration line
 
-Respond in JSON format as an array of panels with this structure:
+For example:
+- BAD: "Narrator (caption): Photosynthesis converts light energy"
+- GOOD: "Narrator: Photosynthesis converts light energy into chemical fuel!"
+- BAD: "Character 1 (dialogue): This is how it works"
+- GOOD: "Character 1: This is how it works!"
+
+CHARACTER CONSISTENCY INSTRUCTIONS:
+1. Establish consistent character appearance from the first panel
+2. Keep the same main character(s) throughout all panels
+3. Note distinctive features (hair style, clothing, accessories) for consistency
+4. Use consistent color palette for each character across panels
+
+Respond in JSON format as an array of panels:
 [
   {
     "panelNumber": 1,
-    "description": "visual description of the scene",
-    "dialogue": "what characters say in this panel",
-    "visualElements": "key props and background elements"
+    "description": "Detailed visual description of the scene including character appearance, pose, expression, setting, and action",
+    "dialogue": "Dialogue with speaker label (e.g., 'Narrator: text' or 'Character: text') but WITHOUT parenthetical notes",
+    "visualElements": "Key props, background elements, color scheme, and artistic details"
   }
 ]`;
 
@@ -320,7 +330,12 @@ Respond in JSON format as an array of panels with this structure:
   try {
     const jsonMatch = text.match(/\[[\s\S]*\]/);
     if (jsonMatch) {
-      return JSON.parse(jsonMatch[0]);
+      const scripts = JSON.parse(jsonMatch[0]);
+      // Clean up dialogue - remove any speaker labels or parenthetical notes
+      return scripts.map((script: PanelScript) => ({
+        ...script,
+        dialogue: cleanDialogueText(script.dialogue)
+      }));
     }
   } catch (e) {
     console.error("Failed to parse script response:", e);
@@ -335,57 +350,76 @@ Respond in JSON format as an array of panels with this structure:
   }));
 }
 
+// Helper function to clean dialogue text - only removes parenthetical labels
+function cleanDialogueText(dialogue: string): string {
+  return dialogue
+    // Remove parenthetical labels like "(caption)", "(dialogue)", "(narration)", "(thought)"
+    .replace(/\s*\(caption\)|\(dialogue\)|\(narration\)|\(thought\)\s*/gi, "")
+    .trim();
+}
+
 // Panel image generation using Gemini 3 Pro Image Preview
 export async function generatePanelImage(
   script: PanelScript,
   artStyle: string,
   characterContext?: string,
   outputFormat?: "strip" | "separate" | "fullpage",
-  pageSize?: "letter" | "a4" | "tabloid" | "a3",
+  _pageSize?: "letter" | "a4" | "tabloid" | "a3",
   borderStyle?: "straight" | "jagged" | "zigzag" | "wavy",
   includeCaptions?: boolean
 ): Promise<string> {
-  // Determine dimensions based on format
-  let dimensions = "";
-  if (outputFormat === "separate") {
-    // Separate panels: standard landscape (11x8.5 inches, 1056x816 pixels at 96 DPI)
-    dimensions = "1056x816 pixels (landscape)";
-  } else {
-    // Strip and fullpage: based on selected page size (landscape)
-    const sizeMap = {
-      letter: "1056x816 pixels (11x8.5 inch landscape)",
-      a4: "1123x794 pixels (11.69x8.27 inch landscape)",
-      tabloid: "1632x1056 pixels (17x11 inch landscape)",
-      a3: "1587x1123 pixels (16.54x11.69 inch landscape)"
-    };
-    dimensions = sizeMap[pageSize || "letter"];
-  }
+  // All panels are generated as SQUARE (1024x1024) for consistent grid layout
+  // The outputFormat and pageSize are used for layout during export, not generation
 
-  const prompt = `Create a ${artStyle} style comic panel illustration at ${dimensions}.
+  const prompt = `Create a ${artStyle} style SQUARE comic panel illustration (1024x1024 pixels).
 
-Scene description: ${script.description}
+PANEL SCENE: ${script.description}
 
-Dialogue to include in speech bubbles: "${script.dialogue}"
+DIALOGUE FOR SPEECH BUBBLE: "${script.dialogue}"
 
-Visual elements: ${script.visualElements}
-${characterContext ? `Character context: ${characterContext}` : ""}
-${borderStyle && outputFormat === "strip" ? `BORDER STYLE: This panel will be part of a comic strip with ${borderStyle} borders. Leave appropriate margin space on the edge.` : ""}
-${includeCaptions && outputFormat === "separate" ? `CAPTION: The text "${script.dialogue}" will also be displayed as a caption below the panel. Ensure the panel works well with external text.` : ""}
+VISUAL ELEMENTS: ${script.visualElements}
 
-CRITICAL INSTRUCTIONS FOR SPEECH BUBBLES:
-- INCLUDE FILLED speech bubbles with the actual dialogue text inside them
-- The dialogue text "${script.dialogue}" must be visible inside speech bubbles in the image
-- Make speech bubbles LARGE ENOUGH to contain all text comfortably
-- Use appropriate font size - text should be easily readable at the final output size
-- Position speech bubbles in clear, uncluttered areas
-- Use high contrast text (black text on white/light bubbles)
-- Ensure speech bubbles don't overlap important visual elements
-- Use comic-style speech bubbles with tails pointing to speakers
+${characterContext ? `CHARACTER REFERENCE (CRITICAL - Maintain consistency): ${characterContext}
 
-Style and composition:
-- The image should be in comic book style, colorful, engaging, and suitable for educational content
-- Use dynamic angles and expressive characters
-- Include the visual elements mentioned above`;
+STRICT CHARACTER CONSISTENCY RULES:
+- If a character reference is provided above, MATCH the exact appearance described
+- Use same hair style, hair color, facial features, body type, and clothing
+- Keep consistent proportions and poses
+- Use the same color palette for clothing and features
+- If no reference yet, establish a clear character design that can be replicated` : "ESTABLISH A CLEAR CHARACTER DESIGN in this first panel that can be consistently replicated in future panels."}
+
+ARTISTIC STYLE REQUIREMENTS:
+- ${artStyle} art style with bold, clean lines
+- Vibrant colors suitable for educational comics
+- Expressive character poses and facial expressions
+- Dynamic composition with clear focal points
+- Professional comic book quality
+
+CRITICAL COMPOSITION INSTRUCTIONS:
+- DO NOT include any borders or frames - this will be added later
+- Keep ALL important content (characters, speech bubbles, text) WITHIN the image frame
+- Maintain at least 10% padding from ALL edges (top, bottom, left, right)
+- Ensure no heads, hands, text, or important elements are cut off at edges
+- Frame the scene so everything fits comfortably with breathing room
+
+CRITICAL SPEECH BUBBLE INSTRUCTIONS:
+- Include a LARGE, clearly visible speech bubble containing exactly: "${script.dialogue}"
+- Speech bubble must be white/light colored with black text for maximum readability
+- Use comic-style rounded speech bubble with tail pointing to the speaker
+- Position bubble in an uncluttered area, NOT overlapping important visual elements
+- Text inside bubble must be large and legible (at least 24pt equivalent)
+- Position bubble well away from edges - at least 100 pixels from any edge
+- If no character is visible, use a rectangular caption/narration box instead
+
+${borderStyle && outputFormat === "strip" ? `LAYOUT NOTE: This panel will be part of a 4x3 grid comic strip with borders added between panels by CSS. Focus on the panel content only - no borders needed.` : ""}
+
+${outputFormat === "separate" && includeCaptions ? `NOTE: This panel will be displayed separately with the text "${script.dialogue}" shown below it. Focus on the visual scene - the dialogue will also appear as external caption text.` : ""}
+
+QUALITY REQUIREMENTS:
+- High detail, professional illustration quality
+- Sharp, clean lines and edges
+- Proper contrast and lighting
+- Suitable for both print and digital display`;
 
   try {
     // Use Gemini 3 Pro Image Preview for image generation
@@ -418,7 +452,16 @@ Style and composition:
 
     if (imageData) {
       const buffer = Buffer.from(imageData, "base64");
-      const uploadResult = await upload(buffer, `panel-${Date.now()}.png`, "panels");
+
+      // Process image to square dimensions for consistent grid layout
+      // All panels are processed as 1024x1024 squares regardless of format
+      const processedBuffer = await processImageBufferToDimensions(
+        buffer,
+        'separate', // Use 'separate' for square individual panels
+        'separate'
+      );
+
+      const uploadResult = await upload(processedBuffer, `panel-${Date.now()}.png`, "panels");
       return uploadResult.url;
     }
 

@@ -4,9 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Sparkles, AlertCircle } from "lucide-react";
-import { BorderStyleSelector } from "@/components/comic/border-style-selector";
 import { OutputFormatSelector } from "@/components/comic/output-format-selector";
-import { PageSizeSelector, type PageSize } from "@/components/comic/page-size-selector";
 import { PanelCountSelector } from "@/components/comic/panel-count-selector";
 import { PanelLoading } from "@/components/comic/panel-loading";
 import { StyleSelector } from "@/components/comic/style-selector";
@@ -48,13 +46,10 @@ export default function CreatePage() {
   const [artStyle, setArtStyle] = useState("retro");
   const [tone, setTone] = useState("friendly");
   const [outputFormat, setOutputFormat] = useState<"strip" | "separate" | "fullpage">("separate");
-  const [pageSize, setPageSize] = useState<PageSize>("letter");
   const [panelCount, setPanelCount] = useState(4);
   const [error, setError] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
-  const [showCaptions, setShowCaptions] = useState(false);
-  const [borderStyle, setBorderStyle] = useState<"straight" | "jagged" | "zigzag" | "wavy">("straight");
 
   useEffect(() => {
     if (!isPending && !session) {
@@ -118,12 +113,11 @@ export default function CreatePage() {
           tone,
           subject: subject.trim(),
           outputFormat,
-          pageSize,
+          pageSize: "letter",
           requestedPanelCount: panelCount,
           isPublic,
           tags: [subject.trim()],
-          borderStyle: outputFormat === "strip" ? borderStyle : "straight",
-          showCaptions: outputFormat === "separate" ? showCaptions : false,
+          showCaptions: false,
         }),
       });
 
@@ -275,40 +269,10 @@ export default function CreatePage() {
                 <OutputFormatSelector value={outputFormat} onChange={setOutputFormat} />
               </div>
 
-              {/* Page Size - only shown for strip and fullpage formats */}
-              {(outputFormat === "strip" || outputFormat === "fullpage") && (
-                <div className="space-y-3">
-                  <Label>Page Size</Label>
-                  <PageSizeSelector value={pageSize} onChange={setPageSize} />
-                  <p className="text-xs text-muted-foreground">
-                    The output will be sized to fit the selected paper format in landscape orientation.
-                  </p>
-                </div>
-              )}
-
               {/* Panel Count */}
               <div className="space-y-3">
                 <PanelCountSelector value={panelCount} onChange={setPanelCount} />
               </div>
-
-              {/* Border Style - only for strip format */}
-              {outputFormat === "strip" && (
-                <div className="space-y-3">
-                  <Label>Border Style</Label>
-                  <BorderStyleSelector value={borderStyle} onChange={setBorderStyle} />
-                </div>
-              )}
-
-              {/* Captions Toggle - only for separate panels */}
-              {outputFormat === "separate" && (
-                <div className="flex items-center justify-between">
-                  <div className="space-y-0.5">
-                    <Label>Show Captions</Label>
-                    <p className="text-xs text-muted-foreground">Display speech bubble text below each panel</p>
-                  </div>
-                  <Switch checked={showCaptions} onCheckedChange={setShowCaptions} />
-                </div>
-              )}
 
               {/* Public Toggle */}
               <div className="flex items-center justify-between">
@@ -356,6 +320,7 @@ export default function CreatePage() {
       {step === "generating" && (
         <PanelLoading
           comicId={comicId}
+          totalPanels={panelCount}
           onComplete={() => {
             router.push(`/comics/${comicId}`);
           }}

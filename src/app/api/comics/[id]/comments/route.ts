@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { randomUUID } from "crypto";
 import { eq, and } from "drizzle-orm";
 import { auth } from "@/lib/auth";
+import { moderateComment } from "@/lib/comment-moderation";
 import { db } from "@/lib/db";
 import { comments, comics } from "@/lib/schema";
 
@@ -63,15 +64,34 @@ export async function POST(
       return NextResponse.json({ error: "Comic not found" }, { status: 404 });
     }
 
-    const [comment] = await db
+    // Moderate the comment content
+    const trimmedContent = content.trim();
+    const moderationResult = moderateComment(trimmedContent);
+
+    const insertedComments = await db
       .insert(comments)
       .values({
         id: randomUUID(),
         comicId: id,
         userId: session.user.id,
-        content: content.trim(),
+        content: trimmedContent,
+        isCensored: moderationResult.isCensored,
+        censoredContent: moderationResult.isCensored ? moderationResult.censoredContent : null,
       })
       .returning();
+
+    const insertedComment = insertedComments[0];
+    if (!insertedComment) {
+      throw new Error("Failed to create comment");
+    }
+
+    // Fetch the comment with user relation populated
+    const comment = await db.query.comments.findFirst({
+      where: eq(comments.id, insertedComment.id),
+      with: {
+        user: true,
+      },
+    });
 
     return NextResponse.json({ comment });
   } catch (error) {

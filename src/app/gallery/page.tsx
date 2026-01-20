@@ -4,12 +4,14 @@ import { GalleryGrid } from "@/components/gallery/gallery-grid";
 export default async function GalleryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ page?: string; subject?: string; sort?: string }>;
+  searchParams: Promise<{ page?: string; subject?: string; sort?: string; inputType?: string; pageSize?: string }>;
 }) {
   const params = await searchParams;
   const page = parseInt(params.page || "1");
   const subject = params.subject ?? null;
   const sort = params.sort ?? null;
+  const inputType = params.inputType ?? null;
+  const pageSize = params.pageSize ?? null;
 
   return (
     <div className="container mx-auto py-8 px-4">
@@ -18,7 +20,7 @@ export default async function GalleryPage({
 
         <GalleryFilters />
 
-        <GalleryGrid page={page} subject={subject} sort={sort} />
+        <GalleryGrid page={page} subject={subject} sort={sort} inputType={inputType} pageSize={pageSize} />
       </div>
     </div>
   );
