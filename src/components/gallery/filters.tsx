@@ -3,22 +3,26 @@
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
 
-export function GalleryFilters() {
+const PREDEFINED_SUBJECTS = [
+  "All",
+  "Math",
+  "Science",
+  "History",
+  "Literature",
+  "Art",
+  "Geography",
+  "Computer Science",
+];
+
+interface GalleryFiltersProps {
+  subjects?: string[];
+}
+
+export function GalleryFilters({ subjects = PREDEFINED_SUBJECTS }: GalleryFiltersProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
   const currentSubject = searchParams.get("subject");
   const currentSort = searchParams.get("sort") || "recent";
-
-  const subjects = [
-    "All",
-    "Math",
-    "Science",
-    "History",
-    "Literature",
-    "Art",
-    "Geography",
-    "Computer Science",
-  ];
 
   const handleSubjectChange = (subject: string) => {
     const params = new URLSearchParams(searchParams.toString());

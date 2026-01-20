@@ -9,12 +9,14 @@ import { upload } from "./storage";
 // Types
 export interface GenerationOptions {
   subject: string;
-  artStyle: "retro" | "manga" | "minimal" | "pixel";
-  tone: "funny" | "serious" | "friendly";
+  artStyle: "retro" | "manga" | "minimal" | "pixel" | "noir" | "watercolor" | "anime" | "popart";
+  tone: "funny" | "serious" | "friendly" | "adventure" | "romantic" | "horror";
   length: "short" | "medium" | "long";
   outputFormat?: "strip" | "separate" | "fullpage";
   pageSize?: "letter" | "a4" | "tabloid" | "a3";
   requestedPanelCount?: number;
+  borderStyle?: "straight" | "jagged" | "zigzag" | "wavy";
+  showCaptions?: boolean;
 }
 
 export interface PanelScript {
@@ -110,6 +112,63 @@ export async function extractTextFromVideo(): Promise<string> {
   throw new Error(
     "Video processing is not yet supported. Please use text, PDF, or image input instead."
   );
+}
+
+// Extract character reference from source image BEFORE panel generation
+async function extractCharacterReferenceFromSource(
+  sourceImageUrl: string
+): Promise<string> {
+  const model = getModel(GEMINI_VISION_MODEL);
+
+  const prompt = `Analyze this image and provide a detailed character reference for comic creation.
+
+If there are characters/people in the image, describe:
+1. Main character(s) appearance (hair, clothing, features, age, gender)
+2. Facial features and expressions
+3. Body proportions and poses
+4. Clothing style and accessories
+5. Art style characteristics
+
+If there are no characters, describe:
+1. The overall visual style
+2. Color palette
+3. Key visual elements that should be consistent
+
+This reference will be used to maintain visual consistency across all comic panels.
+Respond in JSON format: { "characterReference": "detailed description" }`;
+
+  let fullUrl = sourceImageUrl;
+  if (sourceImageUrl.startsWith("/uploads/")) {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    fullUrl = `${baseUrl}${sourceImageUrl}`;
+  }
+
+  const imageResponse = await fetch(fullUrl);
+  const imageBuffer = await imageResponse.arrayBuffer();
+  const base64Image = Buffer.from(imageBuffer).toString("base64");
+
+  const imagePart = {
+    inlineData: {
+      data: base64Image,
+      mimeType: "image/png",
+    },
+  };
+
+  const result = await model.generateContent([prompt, imagePart]);
+  const response = await result.response;
+  const text = response.text() || "";
+
+  try {
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      return parsed.characterReference || "";
+    }
+  } catch (e) {
+    console.error("Failed to parse character reference:", e);
+  }
+
+  return "";
 }
 
 // Extract character reference from first panel for consistency
@@ -282,7 +341,9 @@ export async function generatePanelImage(
   artStyle: string,
   characterContext?: string,
   outputFormat?: "strip" | "separate" | "fullpage",
-  pageSize?: "letter" | "a4" | "tabloid" | "a3"
+  pageSize?: "letter" | "a4" | "tabloid" | "a3",
+  borderStyle?: "straight" | "jagged" | "zigzag" | "wavy",
+  includeCaptions?: boolean
 ): Promise<string> {
   // Determine dimensions based on format
   let dimensions = "";
@@ -308,13 +369,18 @@ Dialogue to include in speech bubbles: "${script.dialogue}"
 
 Visual elements: ${script.visualElements}
 ${characterContext ? `Character context: ${characterContext}` : ""}
+${borderStyle && outputFormat === "strip" ? `BORDER STYLE: This panel will be part of a comic strip with ${borderStyle} borders. Leave appropriate margin space on the edge.` : ""}
+${includeCaptions && outputFormat === "separate" ? `CAPTION: The text "${script.dialogue}" will also be displayed as a caption below the panel. Ensure the panel works well with external text.` : ""}
 
 CRITICAL INSTRUCTIONS FOR SPEECH BUBBLES:
 - INCLUDE FILLED speech bubbles with the actual dialogue text inside them
 - The dialogue text "${script.dialogue}" must be visible inside speech bubbles in the image
-- Position speech bubbles naturally near the speaking characters
+- Make speech bubbles LARGE ENOUGH to contain all text comfortably
+- Use appropriate font size - text should be easily readable at the final output size
+- Position speech bubbles in clear, uncluttered areas
+- Use high contrast text (black text on white/light bubbles)
+- Ensure speech bubbles don't overlap important visual elements
 - Use comic-style speech bubbles with tails pointing to speakers
-- Make the text readable and clearly visible
 
 Style and composition:
 - The image should be in comic book style, colorful, engaging, and suitable for educational content
@@ -411,6 +477,13 @@ export async function generateComic(
     // Step 3: Generate panel scripts
     const scripts = await generatePanelScripts(analysis, options);
 
+    // Step 3.5: Extract character reference from source image BEFORE generating panels
+    let characterReference = "";
+    if (inputType === "image") {
+      characterReference = await extractCharacterReferenceFromSource(inputUrl);
+      await db.update(comics).set({ characterReference }).where(eq(comics.id, comicId));
+    }
+
     // Set panelCount in metadata early so UI shows correct progress
     await db
       .update(comics)
@@ -422,14 +495,21 @@ export async function generateComic(
       .where(eq(comics.id, comicId));
 
     // Step 4: Generate images for each panel sequentially to maintain character context
-    let characterReference = "";
-    let characterContext = "";
+    let characterContext = characterReference ? `Character reference: ${characterReference}` : "";
 
     for (const script of scripts) {
-      const imageUrl = await generatePanelImage(script, options.artStyle, characterContext, options.outputFormat, options.pageSize);
+      const imageUrl = await generatePanelImage(
+        script,
+        options.artStyle,
+        characterContext,
+        options.outputFormat,
+        options.pageSize,
+        options.borderStyle,
+        options.showCaptions
+      );
 
-      // Extract character reference after first panel
-      if (script.panelNumber === 1) {
+      // Extract character reference after first panel (only if not already extracted from source)
+      if (script.panelNumber === 1 && !characterReference) {
         characterReference = await extractCharacterReference(imageUrl);
         await db.update(comics).set({ characterReference }).where(eq(comics.id, comicId));
         characterContext = `Character reference: ${characterReference}`;

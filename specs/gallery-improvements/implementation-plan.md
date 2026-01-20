@@ -12,7 +12,7 @@ Add the shadcn/ui Switch component which will be used for the public/private tog
 
 ### Tasks
 
-- [ ] Install shadcn/ui Switch component
+- [x] Install shadcn/ui Switch component
 
 ### Technical Details
 
@@ -33,10 +33,10 @@ Add public/private toggle to the comic creation flow so users can set visibility
 
 ### Tasks
 
-- [ ] Add `isPublic` state to create page (default: `false`)
-- [ ] Add Switch component to configure step with label "Make Public"
-- [ ] Pass `isPublic` value to create API in request body
-- [ ] Update create API to accept optional `isPublic` parameter
+- [x] Add `isPublic` state to create page (default: `false`)
+- [x] Add Switch component to configure step with label "Make Public"
+- [x] Pass `isPublic` value to create API in request body
+- [x] Update create API to accept optional `isPublic` parameter
 
 ### Technical Details
 
@@ -90,10 +90,10 @@ Add visibility toggle to the comic editor so users can change comic visibility a
 
 ### Tasks
 
-- [ ] Add visibility section to comic editor right sidebar
-- [ ] Add Switch component for public/private toggle
-- [ ] Add state management for `isPublic` in editor
-- [ ] Add API call to update `isPublic` when toggled
+- [x] Add visibility section to comic editor right sidebar
+- [x] Add Switch component for public/private toggle
+- [x] Add state management for `isPublic` in editor
+- [x] Add API call to update `isPublic` when toggled
 
 ### Technical Details
 
@@ -138,8 +138,8 @@ Extend the comic PATCH API to handle `isPublic` updates alongside existing panel
 
 ### Tasks
 
-- [ ] Update comic PATCH API to handle `isPublic` field
-- [ ] Validate ownership before updating visibility
+- [x] Update comic PATCH API to handle `isPublic` field
+- [x] Validate ownership before updating visibility
 
 ### Technical Details
 
@@ -170,10 +170,10 @@ Add public/private badge and toggle to the dashboard comic cards for quick visib
 
 ### Tasks
 
-- [ ] Update ComicCard component to accept `isPublic` prop
-- [ ] Add public/private badge to ComicCard display
-- [ ] Add quick toggle button to ComicCard actions
-- [ ] Update dashboard to pass `isPublic` and toggle handler to ComicCard
+- [x] Update ComicCard component to accept `isPublic` prop
+- [x] Add public/private badge to ComicCard display
+- [x] Add quick toggle button to ComicCard actions
+- [x] Update dashboard to pass `isPublic` and toggle handler to ComicCard
 
 ### Technical Details
 
@@ -278,8 +278,8 @@ Create a utility function for formatting dates as relative time (e.g., "2 days a
 
 ### Tasks
 
-- [ ] Create date formatting utility in `src/lib/date.ts`
-- [ ] Implement relative time function
+- [x] Create date formatting utility in `src/lib/date.ts`
+- [x] Implement relative time function
 
 ### Technical Details
 
@@ -311,8 +311,8 @@ Display creation dates on gallery cards using the relative time formatting.
 
 ### Tasks
 
-- [ ] Import and use `formatRelativeTime` utility in gallery grid
-- [ ] Add creation date display to gallery cards
+- [x] Import and use `formatRelativeTime` utility in gallery grid
+- [x] Add creation date display to gallery cards
 
 ### Technical Details
 
@@ -341,10 +341,10 @@ Improve gallery card visuals with hover effects, skeleton loading, and better st
 
 ### Tasks
 
-- [ ] Add skeleton loading state using existing Skeleton component
-- [ ] Add hover effects (scale, shadow) to gallery cards
-- [ ] Add gradient overlay on images for better text readability
-- [ ] Improve card spacing and layout
+- [x] Add skeleton loading state using existing Skeleton component
+- [x] Add hover effects (scale, shadow) to gallery cards
+- [x] Add gradient overlay on images for better text readability
+- [x] Improve card spacing and layout
 
 ### Technical Details
 

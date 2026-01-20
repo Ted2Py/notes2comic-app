@@ -12,6 +12,7 @@ export default function DashboardPage() {
   const router = useRouter();
   const { data: session, isPending } = useSession();
   const [comics, setComics] = useState<any[]>([]);
+  const [selectedSubject, setSelectedSubject] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -109,20 +110,58 @@ export default function DashboardPage() {
           <p className="text-muted-foreground">Loading your comics...</p>
         </div>
       ) : comics.length > 0 ? (
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {comics.map((comic) => (
-            <ComicCard
-              key={comic.id}
-              {...comic}
-              thumbnailUrl={comic.panels?.[0]?.imageUrl}
-              panelCount={comic.metadata?.panelCount}
-              isPublic={comic.isPublic}
-              createdAt={comic.createdAt}
-              onDelete={handleDelete}
-              onVisibilityToggle={handleVisibilityToggle}
-            />
-          ))}
-        </div>
+        <>
+          {/* Subject Filter */}
+          {(() => {
+            const uniqueSubjects = Array.from(
+              new Set(comics.flatMap((c) => c.tags || [c.subject]))
+            ).sort();
+            return uniqueSubjects.length > 0 ? (
+              <div className="mb-6">
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={selectedSubject === null ? "default" : "outline"}
+                    size="sm"
+                    onClick={() => setSelectedSubject(null)}
+                  >
+                    All Subjects
+                  </Button>
+                  {uniqueSubjects.map((subject) => (
+                    <Button
+                      key={subject}
+                      variant={selectedSubject === subject ? "default" : "outline"}
+                      size="sm"
+                      onClick={() => setSelectedSubject(subject)}
+                    >
+                      {subject}
+                    </Button>
+                  ))}
+                </div>
+              </div>
+            ) : null;
+          })()}
+
+          {/* Comics Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {comics
+              .filter((c) => {
+                if (!selectedSubject) return true;
+                return (c.tags || [c.subject]).includes(selectedSubject);
+              })
+              .map((comic) => (
+                <ComicCard
+                  key={comic.id}
+                  {...comic}
+                  thumbnailUrl={comic.panels?.[0]?.imageUrl}
+                  panelCount={comic.metadata?.panelCount}
+                  isPublic={comic.isPublic}
+                  createdAt={comic.createdAt}
+                  onDelete={handleDelete}
+                  onVisibilityToggle={handleVisibilityToggle}
+                />
+              ))}
+          </div>
+        </>
       ) : (
         <div className="text-center py-12">
           <p className="text-muted-foreground mb-4">

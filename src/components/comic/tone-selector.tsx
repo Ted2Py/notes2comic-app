@@ -12,17 +12,19 @@ const TONES = [
   { id: "funny", label: "Funny", emoji: "😄" },
   { id: "friendly", label: "Friendly", emoji: "🙂" },
   { id: "serious", label: "Serious", emoji: "📚" },
+  { id: "adventure", label: "Adventure", emoji: "⚔️" },
+  { id: "romantic", label: "Romantic", emoji: "💕" },
+  { id: "horror", label: "Horror", emoji: "👻" },
 ];
 
 export function ToneSelector({ value, onChange }: ToneSelectorProps) {
   return (
-    <div className="flex gap-4">
+    <div className="grid grid-cols-3 gap-3">
       {TONES.map((tone) => (
         <motion.div
           key={tone.id}
           whileHover={{ scale: 1.05 }}
           whileTap={{ scale: 0.95 }}
-          className="flex-1"
         >
           <Button
             variant={value === tone.id ? "default" : "outline"}

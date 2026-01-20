@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
     }
 
     const body = await req.json();
-    const { title, description, inputType, inputUrl, artStyle, tone, subject, outputFormat, pageSize, requestedPanelCount, isPublic } = body;
+    const { title, description, inputType, inputUrl, artStyle, tone, subject, outputFormat, pageSize, requestedPanelCount, isPublic, tags, borderStyle, showCaptions } = body;
 
     // Validate required fields
     if (!title || !inputType || !subject) {
@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate artStyle if provided
-    const validArtStyles = ["retro", "manga", "minimal", "pixel"];
+    const validArtStyles = ["retro", "manga", "minimal", "pixel", "noir", "watercolor", "anime", "popart"];
     if (artStyle && !validArtStyles.includes(artStyle)) {
       return NextResponse.json(
         { error: `Invalid artStyle. Must be one of: ${validArtStyles.join(", ")}` },
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate tone if provided
-    const validTones = ["funny", "serious", "friendly"];
+    const validTones = ["funny", "serious", "friendly", "adventure", "romantic", "horror"];
     if (tone && !validTones.includes(tone)) {
       return NextResponse.json(
         { error: `Invalid tone. Must be one of: ${validTones.join(", ")}` },
@@ -84,6 +84,15 @@ export async function POST(req: NextRequest) {
     if (pageSize && !validPageSizes.includes(pageSize)) {
       return NextResponse.json(
         { error: `Invalid pageSize. Must be one of: ${validPageSizes.join(", ")}` },
+        { status: 400 }
+      );
+    }
+
+    // Validate border style if provided
+    const validBorderStyles = ["straight", "jagged", "zigzag", "wavy"];
+    if (borderStyle && !validBorderStyles.includes(borderStyle)) {
+      return NextResponse.json(
+        { error: `Invalid borderStyle. Must be one of: ${validBorderStyles.join(", ")}` },
         { status: 400 }
       );
     }
@@ -113,6 +122,9 @@ export async function POST(req: NextRequest) {
         requestedPanelCount: requestedPanelCount || null,
         status: "draft",
         isPublic: isPublic ?? false,
+        borderStyle: borderStyle || "straight",
+        showCaptions: showCaptions ?? false,
+        tags: tags || [trimmedSubject],
       })
       .returning();
 

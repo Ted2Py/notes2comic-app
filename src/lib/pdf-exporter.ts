@@ -15,6 +15,8 @@ export interface ComicWithPanels {
   tone: string;
   isPublic: boolean;
   outputFormat: "strip" | "separate" | "fullpage";
+  pageSize: "letter" | "a4" | "tabloid" | "a3";
+  showCaptions?: boolean;
   panels: ComicPanel[];
 }
 
@@ -104,7 +106,10 @@ export async function exportComicToPDF(
   const pdf = new jsPDF({
     orientation: "landscape",
     unit: "mm",
-    format: "a4",
+    format: comic.pageSize === "letter" ? "letter" :
+           comic.pageSize === "a4" ? "a4" :
+           comic.pageSize === "tabloid" ? "tabloid" :
+           "a3",
   });
 
   const pageWidth = pdf.internal.pageSize.getWidth();
@@ -163,7 +168,7 @@ async function exportFullPage(
     const item = images[i];
     if (!item) continue;
 
-    const { panel, image } = item;
+    const { panel: _panel, image } = item;
     const row = Math.floor(i / cols);
     const col = i % cols;
 
@@ -186,12 +191,6 @@ async function exportFullPage(
       imgWidth,
       imgHeight
     );
-
-    // Add caption below panel (outside the panel area)
-    if (options.includeCaptions && panel.caption) {
-      const captionY = y + imgHeight + 3;
-      addCaption(pdf, panel.caption, x, captionY, panelWidth);
-    }
   }
 
   // Add watermark if requested
@@ -234,7 +233,7 @@ async function exportStrip(
   let currentX = margin;
 
   // Add images in strip
-  for (const { panel, image } of images) {
+  for (const { panel: _panel, image } of images) {
     const scale = panelWidth / image.width;
     const imgWidth = image.width * scale;
     const imgHeight = image.height * scale;
@@ -248,12 +247,6 @@ async function exportStrip(
       imgWidth,
       imgHeight
     );
-
-    // Add caption below panel
-    if (options.includeCaptions && panel.caption) {
-      const captionY = y + imgHeight + 4;
-      addCaption(pdf, panel.caption, currentX, captionY, panelWidth);
-    }
 
     currentX += panelWidth + padding;
   }
@@ -298,8 +291,8 @@ async function exportSeparate(
       imgHeight
     );
 
-    // Add caption below panel
-    if (options.includeCaptions && panel.caption) {
+    // Add caption below panel (only if showCaptions is enabled for this comic)
+    if (comic.showCaptions && options.includeCaptions && panel.caption) {
       const captionY = y + imgHeight + 6;
       addCaption(pdf, panel.caption, x, captionY, imgWidth);
     }

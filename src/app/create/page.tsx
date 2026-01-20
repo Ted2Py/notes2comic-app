@@ -4,11 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { ArrowLeft, Sparkles, AlertCircle } from "lucide-react";
+import { BorderStyleSelector } from "@/components/comic/border-style-selector";
 import { OutputFormatSelector } from "@/components/comic/output-format-selector";
 import { PageSizeSelector, type PageSize } from "@/components/comic/page-size-selector";
 import { PanelCountSelector } from "@/components/comic/panel-count-selector";
 import { PanelLoading } from "@/components/comic/panel-loading";
 import { StyleSelector } from "@/components/comic/style-selector";
+import { SubjectSelector } from "@/components/comic/subject-selector";
 import { ToneSelector } from "@/components/comic/tone-selector";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
@@ -51,6 +53,8 @@ export default function CreatePage() {
   const [error, setError] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isPublic, setIsPublic] = useState(false);
+  const [showCaptions, setShowCaptions] = useState(false);
+  const [borderStyle, setBorderStyle] = useState<"straight" | "jagged" | "zigzag" | "wavy">("straight");
 
   useEffect(() => {
     if (!isPending && !session) {
@@ -117,6 +121,9 @@ export default function CreatePage() {
           pageSize,
           requestedPanelCount: panelCount,
           isPublic,
+          tags: [subject.trim()],
+          borderStyle: outputFormat === "strip" ? borderStyle : "straight",
+          showCaptions: outputFormat === "separate" ? showCaptions : false,
         }),
       });
 
@@ -235,19 +242,7 @@ export default function CreatePage() {
               </div>
 
               {/* Subject */}
-              <div className="space-y-2">
-                <Label htmlFor="subject">Subject *</Label>
-                <Input
-                  id="subject"
-                  value={subject}
-                  onChange={(e) => setSubject(e.target.value)}
-                  placeholder="Math, History, Science..."
-                  disabled={isSubmitting}
-                />
-                <p className="text-xs text-muted-foreground">
-                  What subject is this comic about?
-                </p>
-              </div>
+              <SubjectSelector value={subject} onChange={setSubject} />
 
               {/* Description */}
               <div className="space-y-2">
@@ -295,6 +290,25 @@ export default function CreatePage() {
               <div className="space-y-3">
                 <PanelCountSelector value={panelCount} onChange={setPanelCount} />
               </div>
+
+              {/* Border Style - only for strip format */}
+              {outputFormat === "strip" && (
+                <div className="space-y-3">
+                  <Label>Border Style</Label>
+                  <BorderStyleSelector value={borderStyle} onChange={setBorderStyle} />
+                </div>
+              )}
+
+              {/* Captions Toggle - only for separate panels */}
+              {outputFormat === "separate" && (
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label>Show Captions</Label>
+                    <p className="text-xs text-muted-foreground">Display speech bubble text below each panel</p>
+                  </div>
+                  <Switch checked={showCaptions} onCheckedChange={setShowCaptions} />
+                </div>
+              )}
 
               {/* Public Toggle */}
               <div className="flex items-center justify-between">

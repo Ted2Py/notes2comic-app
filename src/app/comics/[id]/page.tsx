@@ -60,7 +60,24 @@ export default async function ComicPage({
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <ExportButton comicId={comic.id} comicTitle={comic.title} />
+          {isOwner && (
+            <form action={async () => {
+              "use server";
+              await db.update(comics)
+                .set({ isPublic: !comic.isPublic })
+                .where(eq(comics.id, comic.id));
+              redirect(`/comics/${comic.id}`);
+            }}>
+              <Button
+                type="submit"
+                variant={comic.isPublic ? "default" : "outline"}
+                size="sm"
+              >
+                {comic.isPublic ? "🌐 Public" : "🔒 Private"}
+              </Button>
+            </form>
+          )}
+          <ExportButton comicId={comic.id} comicTitle={comic.title} outputFormat={comic.outputFormat} />
           {isOwner && (
             <Button asChild variant="outline">
               <Link href={`/comics/${comic.id}/edit`}>
@@ -72,7 +89,12 @@ export default async function ComicPage({
         </div>
       </div>
 
-      <ComicStripView panels={comic.panels} outputFormat={comic.outputFormat} />
+      <ComicStripView
+        panels={comic.panels}
+        outputFormat={comic.outputFormat}
+        borderStyle={comic.borderStyle}
+        showCaptions={comic.showCaptions}
+      />
     </div>
   );
 }

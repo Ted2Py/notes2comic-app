@@ -96,14 +96,17 @@ export const comics = pgTable(
     status: text("status", { enum: ["draft", "generating", "completed", "failed"] }).notNull().default("draft"),
     inputType: text("input_type", { enum: ["text", "pdf", "image", "video"] }).notNull(),
     inputUrl: text("input_url"),
-    artStyle: text("art_style").notNull().default("retro"),
-    tone: text("tone").notNull().default("friendly"),
+    artStyle: text("art_style", { enum: ["retro", "manga", "minimal", "pixel", "noir", "watercolor", "anime", "popart"] }).notNull().default("retro"),
+    tone: text("tone", { enum: ["funny", "serious", "friendly", "adventure", "romantic", "horror"] }).notNull().default("friendly"),
     subject: text("subject").notNull(),
     // Customization fields
     outputFormat: text("output_format", { enum: ["strip", "separate", "fullpage"] }).notNull().default("separate"),
     pageSize: text("page_size", { enum: ["letter", "a4", "tabloid", "a3"] }).notNull().default("letter"),
     requestedPanelCount: integer("requested_panel_count"),
     characterReference: text("character_reference"),
+    borderStyle: text("border_style", { enum: ["straight", "jagged", "zigzag", "wavy"] }).notNull().default("straight"),
+    showCaptions: boolean("show_captions").notNull().default(false),
+    tags: text("tags").array(),
     isPublic: boolean("is_public").notNull().default(false),
     metadata: jsonb("metadata").$type<{
       panelCount?: number;

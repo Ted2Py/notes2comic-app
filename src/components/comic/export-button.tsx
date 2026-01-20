@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Download, Loader2, FileText, Image } from "lucide-react";
+import { Download, FileText, ImageIcon, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -16,6 +16,7 @@ import {
 interface ExportButtonProps {
   comicId: string;
   comicTitle: string;
+  outputFormat?: "strip" | "separate" | "fullpage";
   variant?: "default" | "outline" | "ghost";
   size?: "default" | "sm" | "lg";
 }
@@ -23,6 +24,7 @@ interface ExportButtonProps {
 export function ExportButton({
   comicId,
   comicTitle,
+  outputFormat,
   variant = "outline",
   size = "default",
 }: ExportButtonProps) {
@@ -78,13 +80,16 @@ export function ExportButton({
         <DropdownMenuLabel>Export Options</DropdownMenuLabel>
         <DropdownMenuSeparator />
         <DropdownMenuItem onClick={() => handleExport(false)}>
-          <Image className="h-4 w-4 mr-2" />
+          <ImageIcon className="h-4 w-4 mr-2" />
           Panels only
         </DropdownMenuItem>
-        <DropdownMenuItem onClick={() => handleExport(true)}>
-          <FileText className="h-4 w-4 mr-2" />
-          With captions
-        </DropdownMenuItem>
+        {/* Only show "With captions" if comic format is separate */}
+        {outputFormat === "separate" && (
+          <DropdownMenuItem onClick={() => handleExport(true)}>
+            <FileText className="h-4 w-4 mr-2" />
+            With captions
+          </DropdownMenuItem>
+        )}
       </DropdownMenuContent>
     </DropdownMenu>
   );

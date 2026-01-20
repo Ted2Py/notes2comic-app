@@ -13,6 +13,10 @@ const STYLES = [
   { id: "manga", label: "Manga", description: "Japanese manga style" },
   { id: "minimal", label: "Minimal", description: "Clean, simple lines" },
   { id: "pixel", label: "Pixel", description: "Retro pixel art" },
+  { id: "noir", label: "Noir", description: "Dark, dramatic shadows" },
+  { id: "watercolor", label: "Watercolor", description: "Soft painted look" },
+  { id: "anime", label: "Anime", description: "Japanese animation style" },
+  { id: "popart", label: "Pop Art", description: "Bold, vibrant colors" },
 ];
 
 export function StyleSelector({ value, onChange }: StyleSelectorProps) {
@@ -26,14 +30,14 @@ export function StyleSelector({ value, onChange }: StyleSelectorProps) {
           transition={{ type: "spring", stiffness: 300, damping: 20 }}
         >
           <Card
-            className={`p-4 cursor-pointer transition-colors ${
+            className={`p-4 cursor-pointer transition-colors h-[100px] ${
               value === style.id
                 ? "border-primary bg-primary/5 shadow-md shadow-primary/20"
                 : "hover:border-primary/50"
             }`}
             onClick={() => onChange(style.id)}
           >
-            <div className="text-center">
+            <div className="h-full flex flex-col items-center justify-center text-center">
               <h3 className="font-semibold mb-1">{style.label}</h3>
               <p className="text-xs text-muted-foreground">
                 {style.description}

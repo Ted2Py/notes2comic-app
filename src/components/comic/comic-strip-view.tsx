@@ -6,9 +6,11 @@ type Panel = typeof panels.$inferSelect;
 interface ComicStripViewProps {
   panels: Panel[];
   outputFormat: "strip" | "separate" | "fullpage";
+  borderStyle?: "straight" | "jagged" | "zigzag" | "wavy";
+  showCaptions?: boolean;
 }
 
-export function ComicStripView({ panels, outputFormat }: ComicStripViewProps) {
+export function ComicStripView({ panels, outputFormat, borderStyle: _borderStyle, showCaptions }: ComicStripViewProps) {
   const sortedPanels = [...panels].sort((a, b) => a.panelNumber - b.panelNumber);
 
   if (outputFormat === "separate") {
@@ -22,8 +24,11 @@ export function ComicStripView({ panels, outputFormat }: ComicStripViewProps) {
               bubbles={panel.speechBubbles || []}
               positions={panel.bubblePositions || []}
             />
-            {panel.textBox && (
-              <div className="mt-3 p-2 bg-muted/50 rounded text-sm">
+            {showCaptions && panel.textBox && (
+              <div className="mt-3 p-3 bg-muted/50 rounded text-sm border border-border">
+                <div className="font-medium text-xs text-muted-foreground mb-1">
+                  Caption:
+                </div>
                 {panel.textBox}
               </div>
             )}

@@ -41,6 +41,8 @@ export async function POST(req: NextRequest) {
       outputFormat: comic.outputFormat,
       pageSize: comic.pageSize,
       requestedPanelCount: comic.requestedPanelCount,
+      borderStyle: comic.borderStyle,
+      showCaptions: comic.showCaptions,
     };
     generateComic(comicId, inputUrl, inputType, generateOptions).catch((error) => {
       console.error("Background generation error:", error);
