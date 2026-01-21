@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { eq, and } from "drizzle-orm";
 import { auth } from "@/lib/auth";
-import { generatePanelImage, generateComic } from "@/lib/comic-generator";
+import { inngest } from "@/lib/inngest";
+import { generatePanelImage } from "@/lib/comic-generator";
 import { db } from "@/lib/db";
 import { comics, panels } from "@/lib/schema";
 
@@ -105,23 +106,25 @@ export async function POST(
 
       return NextResponse.json({ success: true, imageUrl: newImageUrl });
     } else {
-      // Regenerate entire comic
-      // Trigger background regeneration
-      generateComic(
-        id,
-        comic.inputUrl || "",
-        comic.inputType,
-        options || {
-          subject: comic.subject,
-          artStyle: comic.artStyle as any,
-          tone: comic.tone as any,
-          length: "medium",
-        }
-      ).catch(console.error);
+      // Regenerate entire comic using Inngest
+      await inngest.send({
+        name: "comic/generate",
+        data: {
+          comicId: id,
+          inputUrl: comic.inputUrl || "",
+          inputType: comic.inputType,
+          options: options || {
+            subject: comic.subject,
+            artStyle: comic.artStyle as any,
+            tone: comic.tone as any,
+            length: "medium",
+          },
+        },
+      });
 
       return NextResponse.json({
         success: true,
-        message: "Comic regeneration started",
+        message: "Comic regeneration started in background",
       });
     }
   } catch (error) {

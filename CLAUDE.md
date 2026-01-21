@@ -1,88 +1,46 @@
-# Agentic Coding Boilerplate - AI Assistant Guidelines
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
 ## Project Overview
 
-This is a Next.js 16 boilerplate for building AI-powered applications with authentication, database, and modern UI components.
+Notes-2-Comic is a Next.js application that transforms educational content into visual comics using Google Gemini AI. Users can upload text, PDFs, or images, and the system generates comic strips with customizable art styles, tones, and layouts. Features include a public gallery, social interactions (likes/comments), and an interactive comic editor with speech bubble editing and drawing tools.
 
-### Tech Stack
+## Tech Stack
 
 - **Framework**: Next.js 16 with App Router, React 19, TypeScript
-- **AI Integration**: Vercel AI SDK 5 + OpenRouter (access to 100+ AI models)
-- **Authentication**: BetterAuth with Email/Password
+- **AI Integration**: Google Gemini AI (Gemini 2.5 Pro, Flash, Image models) via `@google/generative-ai`
+- **Authentication**: BetterAuth with Email/Password and Google OAuth
 - **Database**: PostgreSQL with Drizzle ORM
 - **UI**: shadcn/ui components with Tailwind CSS 4
-- **Styling**: Tailwind CSS with dark mode support (next-themes)
+- **Storage**: Vercel Blob (production) / local filesystem (development)
 
-## AI Integration with OpenRouter
+## Key Commands
 
-### Key Points
+```bash
+# Development
+pnpm run dev          # Start dev server (DON'T run this yourself - ask user)
+pnpm run build        # Build for production (runs db:migrate first)
+pnpm run build:ci     # Build without database (for CI/CD pipelines)
+pnpm run start        # Start production server
 
-- This project uses **OpenRouter** as the AI provider, NOT direct OpenAI
-- OpenRouter provides access to 100+ AI models through a single unified API
-- Default model: `openai/gpt-5-mini` (configurable via `OPENROUTER_MODEL` env var)
-- Users browse models at: https://openrouter.ai/models
-- Users get API keys from: https://openrouter.ai/settings/keys
+# Code quality (ALWAYS run after changes)
+pnpm run lint         # Run ESLint
+pnpm run typecheck    # TypeScript type checking
+pnpm run check        # Run both lint and typecheck
 
-### AI Implementation Files
-
-- `src/app/api/chat/route.ts` - Chat API endpoint using OpenRouter
-- Package: `@openrouter/ai-sdk-provider` (not `@ai-sdk/openai`)
-- Import: `import { openrouter } from "@openrouter/ai-sdk-provider"`
-
-## Project Structure
-
-```
-src/
-├── app/                          # Next.js App Router
-│   ├── (auth)/                  # Auth route group
-│   │   ├── login/               # Login page
-│   │   ├── register/            # Registration page
-│   │   ├── forgot-password/     # Forgot password page
-│   │   └── reset-password/      # Reset password page
-│   ├── api/
-│   │   ├── auth/[...all]/       # Better Auth catch-all route
-│   │   ├── chat/route.ts        # AI chat endpoint (OpenRouter)
-│   │   └── diagnostics/         # System diagnostics
-│   ├── chat/page.tsx            # AI chat interface (protected)
-│   ├── dashboard/page.tsx       # User dashboard (protected)
-│   ├── profile/page.tsx         # User profile (protected)
-│   ├── page.tsx                 # Home/landing page
-│   └── layout.tsx               # Root layout
-├── components/
-│   ├── auth/                    # Authentication components
-│   │   ├── sign-in-button.tsx   # Sign in form
-│   │   ├── sign-up-form.tsx     # Sign up form
-│   │   ├── forgot-password-form.tsx
-│   │   ├── reset-password-form.tsx
-│   │   ├── sign-out-button.tsx
-│   │   └── user-profile.tsx
-│   ├── ui/                      # shadcn/ui components
-│   │   ├── button.tsx
-│   │   ├── card.tsx
-│   │   ├── dialog.tsx
-│   │   ├── dropdown-menu.tsx
-│   │   ├── avatar.tsx
-│   │   ├── badge.tsx
-│   │   ├── separator.tsx
-│   │   ├── mode-toggle.tsx      # Dark/light mode toggle
-│   │   └── github-stars.tsx
-│   ├── site-header.tsx          # Main navigation header
-│   ├── site-footer.tsx          # Footer component
-│   ├── theme-provider.tsx       # Dark mode provider
-│   ├── setup-checklist.tsx      # Setup guide component
-│   └── starter-prompt-modal.tsx # Starter prompts modal
-└── lib/
-    ├── auth.ts                  # Better Auth server config
-    ├── auth-client.ts           # Better Auth client hooks
-    ├── db.ts                    # Database connection
-    ├── schema.ts                # Drizzle schema (users, sessions, etc.)
-    ├── storage.ts               # File storage abstraction (Vercel Blob / local)
-    └── utils.ts                 # Utility functions (cn, etc.)
+# Database
+pnpm run db:generate  # Generate database migrations
+pnpm run db:migrate   # Run database migrations
+pnpm run db:push      # Push schema changes to database
+pnpm run db:studio    # Open Drizzle Studio (database GUI)
+pnpm run db:dev       # Push schema for development
+pnpm run db:reset     # Reset database (drop all tables)
 ```
 
 ## Environment Variables
 
-Required environment variables (see `env.example`):
+Required (see `env.example`):
 
 ```env
 # Database
@@ -91,9 +49,8 @@ POSTGRES_URL=postgresql://user:password@localhost:5432/db_name
 # Better Auth
 BETTER_AUTH_SECRET=32-char-random-string
 
-# AI via OpenRouter
-OPENROUTER_API_KEY=sk-or-v1-your-key
-OPENROUTER_MODEL=openai/gpt-5-mini  # or any model from openrouter.ai/models
+# Google AI (Gemini) - Required for comic generation
+GEMINI_API_KEY=your-gemini-api-key
 
 # App
 NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -102,149 +59,145 @@ NEXT_PUBLIC_APP_URL=http://localhost:3000
 BLOB_READ_WRITE_TOKEN=  # Leave empty for local dev, set for Vercel Blob in production
 ```
 
-## Available Scripts
+## Project Architecture
 
-```bash
-npm run dev          # Start dev server (DON'T run this yourself - ask user)
-npm run build        # Build for production (runs db:migrate first)
-npm run build:ci     # Build without database (for CI/CD pipelines)
-npm run start        # Start production server
-npm run lint         # Run ESLint (ALWAYS run after changes)
-npm run typecheck    # TypeScript type checking (ALWAYS run after changes)
-npm run db:generate  # Generate database migrations
-npm run db:migrate   # Run database migrations
-npm run db:push      # Push schema changes to database
-npm run db:studio    # Open Drizzle Studio (database GUI)
-npm run db:dev       # Push schema for development
-npm run db:reset     # Reset database (drop all tables)
+### Core Application Structure
+
+```
+src/
+├── app/                          # Next.js 16 App Router
+│   ├── (auth)/                  # Auth route group (login, register, etc.)
+│   ├── api/
+│   │   ├── auth/[...all]/       # BetterAuth catch-all route
+│   │   ├── upload/              # File upload handler
+│   │   └── comics/              # Comic CRUD and generation endpoints
+│   │       ├── create/          # Create new comic entry
+│   │       ├── generate/        # Start AI generation
+│   │       ├── [id]/            # Individual comic operations
+│   │       │   ├── panels/      # Panel CRUD and regeneration
+│   │       │   ├── comments/    # Comments API
+│   │       │   ├── like/        # Like/unlike comic
+│   │       │   └── export/      # PDF export
+│   │       └── route.ts         # List comics
+│   ├── create/                  # Comic creation wizard
+│   ├── gallery/                 # Public gallery with filters
+│   ├── dashboard/               # User dashboard
+│   ├── profile/                 # User profile page
+│   └── page.tsx                 # Landing page
+├── components/
+│   ├── auth/                    # Authentication components
+│   ├── comic/                   # Comic-specific components (20+ files)
+│   │   ├── comic-editor.tsx     # Main editing interface with drawing tools
+│   │   ├── comic-viewer.tsx     # Comic display component
+│   │   ├── speech-bubble-overlay.tsx # Canva-style bubble editing
+│   │   ├── output-format-selector.tsx
+│   │   ├── style-selector.tsx
+│   │   ├── tone-selector.tsx
+│   │   └── panel-count-selector.tsx
+│   ├── gallery/                 # Gallery components
+│   ├── ui/                      # shadcn/ui components
+│   └── upload/                  # File upload handling
+└── lib/
+    ├── auth.ts                  # BetterAuth server config
+    ├── auth-client.ts           # BetterAuth client hooks
+    ├── comic-generator.ts       # Main comic generation orchestration
+    ├── gemini.ts                # Google AI integration
+    ├── image-processor.ts       # Image manipulation (Sharp)
+    ├── pdf-extractor.ts         # PDF text extraction
+    ├── pdf-exporter.ts          # PDF generation from comics
+    ├── comment-moderation.ts    # Comment filtering/censorship
+    ├── storage.ts               # File storage abstraction
+    ├── db.ts                    # Database connection
+    ├── schema.ts                # Drizzle schema
+    └── utils.ts                 # Utility functions
 ```
 
-## Documentation Files
+### Comic Generation Pipeline
 
-The project includes technical documentation in `docs/`:
+The core feature is the AI-powered comic generation in `src/lib/comic-generator.ts`:
 
-- `docs/technical/ai/streaming.md` - AI streaming implementation guide
-- `docs/technical/ai/structured-data.md` - Structured data extraction
-- `docs/technical/react-markdown.md` - Markdown rendering guide
-- `docs/technical/betterauth/polar.md` - Polar payment integration
-- `docs/business/starter-prompt.md` - Business context for AI prompts
+1. **Content Extraction** (`extractContent`): Extracts text from uploaded files
+   - Text files: Direct reading
+   - PDFs: Using `pdf-extractor.ts` (PDF.js + pdfreader)
+   - Images: OCR via Gemini Vision (`extractTextFromImage`)
 
-## Guidelines for AI Assistants
+2. **Content Analysis** (`analyzeContent`): Gemini Pro analyzes content and suggests panel count
 
-### CRITICAL RULES
+3. **Panel Script Generation** (`generatePanelScripts`): Creates structured panel descriptions with dialogue
 
-1. **ALWAYS run lint and typecheck** after completing changes:
+4. **Character Reference Extraction** (`extractCharacterReferenceFromSource`): Extracts character description from source image for consistency
 
-   ```bash
-   npm run lint && npm run typecheck
-   ```
+5. **Panel Image Generation** (`generatePanelImage`): Uses Gemini 3 Pro Image Preview
+   - Generates 1024x1024 square panels
+   - Maintains character consistency across panels
+   - Includes speech bubbles with dialogue
 
-2. **NEVER start the dev server yourself**
+6. **Storage**: All images stored via `storage.ts` (local or Vercel Blob)
 
-   - If you need dev server output, ask the user to provide it
-   - Don't run `npm run dev` or `pnpm dev`
+### Database Schema (`src/lib/schema.ts`)
 
-3. **Use OpenRouter, NOT OpenAI directly**
+**Core Tables:**
+- `user`: User profiles (BetterAuth)
+- `session`, `account`, `verification`: BetterAuth tables
+- `comics`: Generated comics with metadata (status, artStyle, tone, etc.)
+- `panels`: Individual panels with image URLs, speech bubbles, drawing layers
+- `likes`, `comments`, `commentLikes`: Social features
 
-   - Import from `@openrouter/ai-sdk-provider`
-   - Use `openrouter()` function, not `openai()`
-   - Model names follow OpenRouter format: `provider/model-name`
+**Key Types:**
+- `DetectedTextBox`: AI-recognized text boxes for editable overlays
+- `EnhancedSpeechBubble`: Canva-style bubble customization
+- `DrawingLayer`, `Stroke`: Canvas drawing tool data
 
-4. **Styling Guidelines**
+## Critical Implementation Guidelines
 
-   - Stick to standard Tailwind CSS utility classes
-   - Use shadcn/ui color tokens (e.g., `bg-background`, `text-foreground`)
-   - Avoid custom colors unless explicitly requested
-   - Support dark mode with appropriate Tailwind classes
+### AI Integration (Google Gemini)
 
-5. **Authentication**
+- Use `@google/generative-ai` package, NOT OpenAI or OpenRouter
+- Import from: `@/lib/gemini.ts`
+- Models: `GEMINI_PRO_MODEL`, `GEMINI_FLASH_MODEL`, `GEMINI_IMAGE_MODEL`, `GEMINI_VISION_MODEL`
+- All prompts are in `comic-generator.ts` - maintain character consistency instructions
 
-   - Server-side: Import from `@/lib/auth` (Better Auth instance)
-   - Client-side: Import hooks from `@/lib/auth-client`
-   - Protected routes should check session in Server Components
-   - Use existing auth components from `src/components/auth/`
+### Authentication
 
-6. **Database Operations**
+- Server-side: `import { auth } from "@/lib/auth"`
+- Client-side: `import { useSession } from "@/lib/auth-client"`
+- Get session: `await auth.api.getSession({ headers: await headers() })`
 
-   - Use Drizzle ORM (imported from `@/lib/db`)
-   - Schema is defined in `@/lib/schema`
-   - Always run migrations after schema changes
-   - PostgreSQL is the database (not SQLite, MySQL, etc.)
+### File Storage
 
-7. **File Storage**
+- Import: `import { upload, deleteFile } from "@/lib/storage"`
+- Automatically switches between local (dev) and Vercel Blob (production) based on `BLOB_READ_WRITE_TOKEN`
+- Local files saved to `public/uploads/`, served at `/uploads/`
+- Upload: `await upload(buffer, "filename.png", "folder")`
 
-   - Use the storage abstraction from `@/lib/storage`
-   - Automatically uses local storage (dev) or Vercel Blob (production)
-   - Import: `import { upload, deleteFile } from "@/lib/storage"`
-   - Example: `const result = await upload(buffer, "avatar.png", "avatars")`
-   - Storage switches based on `BLOB_READ_WRITE_TOKEN` environment variable
+### Comic Editor Features
 
-8. **Component Creation**
+The comic editor (`comic-editor.tsx`) supports:
+- **Speech Bubble Editing**: Canva-style positioning with enhanced customization
+- **AI Text Detection**: `detectTextBoxes()` uses Gemini Vision to find text
+- **Drawing Tools**: Canvas-based drawing with layers, strokes
+- **Panel Regeneration**: Individual panel updates via `/api/comics/[id]/regenerate`
+- **Export**: PDF generation via `pdf-exporter.ts` with multiple page sizes
 
-   - Use existing shadcn/ui components when possible
-   - Follow the established patterns in `src/components/ui/`
-   - Support both light and dark modes
-   - Use TypeScript with proper types
+### API Route Patterns
 
-9. **API Routes**
-   - Follow Next.js 16 App Router conventions
-   - Use Route Handlers (route.ts files)
-   - Return Response objects
-   - Handle errors appropriately
+- All routes in `src/app/api/`
+- Use `auth.api.getSession()` for authentication
+- Return proper HTTP status codes and JSON responses
+- Handle errors with descriptive messages
 
-### Best Practices
+### Styling
 
-- Read existing code patterns before creating new features
-- Maintain consistency with established file structure
-- Use the documentation files when implementing related features
-- Test changes with lint and typecheck before considering complete
-- When modifying AI functionality, refer to `docs/technical/ai/` guides
+- Use shadcn/ui color tokens: `bg-background`, `text-foreground`, `border-muted`
+- Support dark mode with appropriate Tailwind classes
+- Use existing components from `@/components/ui/`
 
-### Common Tasks
+## Important Notes
 
-**Adding a new page:**
-
-1. Create in `src/app/[route]/page.tsx`
-2. Use Server Components by default
-3. Add to navigation if needed
-
-**Adding a new API route:**
-
-1. Create in `src/app/api/[route]/route.ts`
-2. Export HTTP method handlers (GET, POST, etc.)
-3. Use proper TypeScript types
-
-**Adding authentication to a page:**
-
-1. Import auth instance: `import { auth } from "@/lib/auth"`
-2. Get session: `const session = await auth.api.getSession({ headers: await headers() })`
-3. Check session and redirect if needed
-
-**Working with the database:**
-
-1. Update schema in `src/lib/schema.ts`
-2. Generate migration: `npm run db:generate`
-3. Apply migration: `npm run db:migrate`
-4. Import `db` from `@/lib/db` to query
-
-**Modifying AI chat:**
-
-1. Backend: `src/app/api/chat/route.ts`
-2. Frontend: `src/app/chat/page.tsx`
-3. Reference streaming docs: `docs/technical/ai/streaming.md`
-4. Remember to use OpenRouter, not direct OpenAI
-
-**Working with file storage:**
-
-1. Import storage functions: `import { upload, deleteFile } from "@/lib/storage"`
-2. Upload files: `const result = await upload(fileBuffer, "filename.png", "folder")`
-3. Delete files: `await deleteFile(result.url)`
-4. Storage automatically uses local filesystem in dev, Vercel Blob in production
-5. Local files are saved to `public/uploads/` and served at `/uploads/`
-
-## Package Manager
-
-This project uses **pnpm** (see `pnpm-lock.yaml`). When running commands:
-
-- Use `pnpm` instead of `npm` when possible
-- Scripts defined in package.json work with `pnpm run [script]`
+1. **NEVER start the dev server yourself** - ask the user if needed
+2. **ALWAYS run `pnpm run lint && pnpm run typecheck` after changes**
+3. **All panels are 1024x1024 squares** - layout determined by outputFormat during export
+4. **Character consistency** is maintained via characterReference extraction and sequential generation
+5. **OCR for images** uses Gemini Vision - requires `GEMINI_API_KEY`
+6. **Comment moderation** via `comment-moderation.ts` filters inappropriate content
+7. Use `pnpm` as the package manager (see `pnpm-lock.yaml`)

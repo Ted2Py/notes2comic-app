@@ -2,7 +2,7 @@ import { headers } from "next/headers";
 import { NextRequest, NextResponse } from "next/server";
 import { eq, asc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
-import { generateComic } from "@/lib/comic-generator";
+import { inngest } from "@/lib/inngest";
 import { db } from "@/lib/db";
 import { comics, panels } from "@/lib/schema";
 
@@ -35,7 +35,7 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Comic not found" }, { status: 404 });
     }
 
-    // Start generation in background
+    // Prepare generation options
     const generateOptions = {
       ...options,
       outputFormat: comic.outputFormat,
@@ -44,14 +44,23 @@ export async function POST(req: NextRequest) {
       borderStyle: comic.borderStyle,
       showCaptions: comic.showCaptions,
     };
-    generateComic(comicId, inputUrl, inputType, generateOptions).catch((error) => {
-      console.error("Background generation error:", error);
+
+    // Send event to Inngest for async processing
+    // This avoids Vercel's timeout limits (10s hobby, 60s pro)
+    await inngest.send({
+      name: "comic/generate",
+      data: {
+        comicId,
+        inputUrl,
+        inputType,
+        options: generateOptions,
+      },
     });
 
     return NextResponse.json({
       success: true,
       comicId,
-      message: "Comic generation started",
+      message: "Comic generation started in background",
     });
   } catch (error) {
     console.error("Generate API error:", error);
