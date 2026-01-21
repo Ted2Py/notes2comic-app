@@ -488,7 +488,12 @@ export function ComicEditor({ comic }: ComicEditorProps) {
       if (response.ok) {
         const data = await response.json();
         if (data.panel) {
-          setPanels((prev) => [...prev, data.panel]);
+          setPanels((prev) => {
+            const newPanels = [...prev, data.panel];
+            // Renumber panels sequentially to match the display count
+            newPanels.forEach((p, i) => (p.panelNumber = i + 1));
+            return newPanels;
+          });
           setSelectedPanelId(data.panel.id);
           setHasUnsavedChanges(true);
         }

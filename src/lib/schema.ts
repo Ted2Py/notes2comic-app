@@ -167,43 +167,6 @@ export const panels = pgTable(
   ]
 );
 
-// Panel History table - stores previous versions of panels for restoration
-export const panelHistory = pgTable(
-  "panel_history",
-  {
-    id: text("id")
-      .primaryKey(),
-    panelId: text("panel_id")
-      .notNull()
-      .references(() => panels.id, { onDelete: "cascade" }),
-    comicId: text("comic_id")
-      .notNull()
-      .references(() => comics.id, { onDelete: "cascade" }),
-    versionNumber: integer("version_number").notNull(),
-    imageUrl: text("image_url").notNull(),
-    caption: text("caption").notNull(),
-    textBox: text("text_box"),
-    speechBubbles: jsonb("speech_bubbles").$type<EnhancedSpeechBubble[]>(),
-    bubblePositions: jsonb("bubble_positions").$type<EnhancedBubblePosition[]>(),
-    detectedTextBoxes: jsonb("detected_text_boxes").$type<DetectedTextBox[]>(),
-    drawingLayers: jsonb("drawing_layers").$type<DrawingLayer[]>(),
-    drawingData: text("drawing_data"),
-    metadata: jsonb("metadata").$type<{
-      generationPrompt?: string;
-      characterContext?: string;
-      previousPanelContext?: string;
-      nextPanelContext?: string;
-      [key: string]: unknown;
-    }>(),
-    createdAt: timestamp("created_at").defaultNow().notNull(),
-  },
-  (table) => [
-    index("panel_history_panel_id_idx").on(table.panelId),
-    index("panel_history_comic_id_idx").on(table.comicId),
-    index("panel_history_version_idx").on(table.panelId, table.versionNumber),
-  ]
-);
-
 // Likes table - gallery likes
 export const likes = pgTable(
   "likes",
@@ -301,26 +264,13 @@ export const comicsRelations = relations(comics, ({ one, many }) => ({
     references: [user.id],
   }),
   panels: many(panels),
-  panelHistory: many(panelHistory),
   likes: many(likes),
   comments: many(comments),
 }));
 
-export const panelsRelations = relations(panels, ({ one, many }) => ({
+export const panelsRelations = relations(panels, ({ one }) => ({
   comic: one(comics, {
     fields: [panels.comicId],
-    references: [comics.id],
-  }),
-  history: many(panelHistory),
-}));
-
-export const panelHistoryRelations = relations(panelHistory, ({ one }) => ({
-  panel: one(panels, {
-    fields: [panelHistory.panelId],
-    references: [panels.id],
-  }),
-  comic: one(comics, {
-    fields: [panelHistory.comicId],
     references: [comics.id],
   }),
 }));

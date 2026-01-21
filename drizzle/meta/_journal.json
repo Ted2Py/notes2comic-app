@@ -61,29 +61,15 @@
     {
       "idx": 8,
       "version": "7",
-      "when": 1768975200000,
-      "tag": "0008_create_panel_history",
+      "when": 1768950777714,
+      "tag": "0008_comment_likes",
       "breakpoints": true
     },
     {
       "idx": 9,
       "version": "7",
-      "when": 1768945218371,
-      "tag": "0009_add_drawing_data",
-      "breakpoints": true
-    },
-    {
-      "idx": 10,
-      "version": "7",
-      "when": 1768950777714,
-      "tag": "0010_comment_likes",
-      "breakpoints": true
-    },
-    {
-      "idx": 11,
-      "version": "7",
       "when": 1768963200000,
-      "tag": "0011_remove_fullpage",
+      "tag": "0009_remove_fullpage",
       "breakpoints": true
     }
   ]

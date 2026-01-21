@@ -1,14 +1,13 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Save, Palette, Type, MessageSquare, PenTool, Scan, Loader2, History, Undo } from "lucide-react";
+import { Save, Palette, Type, MessageSquare, PenTool, Scan, Loader2, Undo } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { BubbleToolbar } from "./bubble-toolbar";
-import { PanelHistory } from "./panel-history";
 import { cn } from "@/lib/utils";
 import type { panels, EnhancedSpeechBubble, EnhancedBubblePosition, DetectedTextBox } from "@/lib/schema";
 
@@ -273,7 +272,7 @@ export function PropertiesPanel({
       <div className="flex-1 overflow-y-auto overflow-x-hidden">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="h-full flex flex-col">
           <div className="px-4 pt-4 flex-shrink-0">
-            <TabsList className="grid grid-cols-5 w-full h-auto">
+            <TabsList className="grid grid-cols-4 w-full h-auto">
               <TabsTrigger value="style" className="flex-col gap-1 h-auto py-2 px-1">
                 <Palette className="h-4 w-4" />
                 <span className="text-[10px] leading-none">Style</span>
@@ -285,10 +284,6 @@ export function PropertiesPanel({
               <TabsTrigger value="bubbles" className="flex-col gap-1 h-auto py-2 px-1">
                 <MessageSquare className="h-4 w-4" />
                 <span className="text-[10px] leading-none">Bubbles</span>
-              </TabsTrigger>
-              <TabsTrigger value="history" className="flex-col gap-1 h-auto py-2 px-1">
-                <History className="h-4 w-4" />
-                <span className="text-[10px] leading-none">History</span>
               </TabsTrigger>
               <TabsTrigger value="drawing" className="flex-col gap-1 h-auto py-2 px-1">
                 <PenTool className="h-4 w-4" />
@@ -493,15 +488,6 @@ export function PropertiesPanel({
                   )}
                 </div>
               )}
-            </TabsContent>
-
-            {/* History Tab */}
-            <TabsContent value="history" className="space-y-4 mt-4">
-              <PanelHistory
-                comicId={_comicId}
-                panelId={panel.id}
-                onRestore={(panelData) => onPanelChange({ ...panel, ...panelData })}
-              />
             </TabsContent>
 
             {/* Drawing Tab */}

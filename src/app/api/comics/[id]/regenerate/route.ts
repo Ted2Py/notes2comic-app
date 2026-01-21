@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq, and, desc } from "drizzle-orm";
+import { eq, and } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { generatePanelImage, generateComic } from "@/lib/comic-generator";
 import { db } from "@/lib/db";
-import { comics, panels, panelHistory } from "@/lib/schema";
+import { comics, panels } from "@/lib/schema";
 
 // POST - Regenerate specific panel or entire comic
 export async function POST(
@@ -76,32 +76,6 @@ export async function POST(
       // Generate new image with character reference for consistency
       // Use edited text if provided, otherwise use panel's caption
       const dialogueText = editedText || panel.caption;
-
-      // Save current panel state to history before regenerating
-      // Get the next version number
-      const existingHistory = await db.query.panelHistory.findMany({
-        where: eq(panelHistory.panelId, panelId),
-        orderBy: [desc(panelHistory.versionNumber)],
-        limit: 1,
-      });
-      const nextVersionNumber = (existingHistory[0]?.versionNumber ?? 0) + 1;
-
-      // Save to history
-      await db.insert(panelHistory).values({
-        id: `history-${Date.now()}-${Math.random().toString(36).substring(7)}`,
-        panelId: panelId,
-        comicId: id,
-        versionNumber: nextVersionNumber,
-        imageUrl: panel.imageUrl,
-        caption: panel.caption,
-        textBox: panel.textBox,
-        speechBubbles: panel.speechBubbles,
-        bubblePositions: panel.bubblePositions,
-        detectedTextBoxes: panel.detectedTextBoxes,
-        drawingLayers: panel.drawingLayers,
-        drawingData: panel.drawingData,
-        metadata: panel.metadata,
-      });
 
       const newImageUrl = await generatePanelImage(
         {
