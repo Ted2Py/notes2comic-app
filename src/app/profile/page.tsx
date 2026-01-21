@@ -6,10 +6,7 @@ import {
   Mail,
   Calendar,
   User,
-  Shield,
   ArrowLeft,
-  Lock,
-  Smartphone,
   Sparkles,
   Palette,
   BarChart3,
@@ -57,7 +54,6 @@ export default function ProfilePage() {
   const { data: session, isPending } = useSession();
   const router = useRouter();
   const [editProfileOpen, setEditProfileOpen] = useState(false);
-  const [securityOpen, setSecurityOpen] = useState(false);
   const [comicsSettingsOpen, setComicsSettingsOpen] = useState(false);
   const [usageStats, setUsageStats] = useState<UsageStats>({
     totalComics: 0,
@@ -354,15 +350,6 @@ export default function ProfilePage() {
                 <div className="flex items-center gap-2 text-muted-foreground">
                   <Mail className="h-4 w-4" />
                   <span>{user.email}</span>
-                  {user.emailVerified && (
-                    <Badge
-                      variant="outline"
-                      className="text-green-600 border-green-600"
-                    >
-                      <Shield className="h-3 w-3 mr-1" />
-                      Verified
-                    </Badge>
-                  )}
                 </div>
                 {createdDate && (
                   <div className="flex items-center gap-2 text-muted-foreground text-sm">
@@ -525,47 +512,13 @@ export default function ProfilePage() {
                 <label className="text-sm font-medium text-muted-foreground">
                   Email Address
                 </label>
-                <div className="p-3 border rounded-md bg-muted/10 flex items-center justify-between">
+                <div className="p-3 border rounded-md bg-muted/10">
                   <span>{user.email}</span>
-                  {user.emailVerified && (
-                    <Badge
-                      variant="outline"
-                      className="text-green-600 border-green-600"
-                    >
-                      Verified
-                    </Badge>
-                  )}
                 </div>
               </div>
             </div>
 
             <Separator />
-
-            <div className="space-y-4">
-              <h3 className="text-lg font-medium">Account Status</h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="space-y-1">
-                    <p className="font-medium">Email Verification</p>
-                    <p className="text-sm text-muted-foreground">
-                      Email address verification status
-                    </p>
-                  </div>
-                  <Badge variant={user.emailVerified ? "default" : "secondary"}>
-                    {user.emailVerified ? "Verified" : "Unverified"}
-                  </Badge>
-                </div>
-                <div className="flex items-center justify-between p-4 border rounded-lg">
-                  <div className="space-y-1">
-                    <p className="font-medium">Account Type</p>
-                    <p className="text-sm text-muted-foreground">
-                      Your account access level
-                    </p>
-                  </div>
-                  <Badge variant="outline">Standard</Badge>
-                </div>
-              </div>
-            </div>
           </CardContent>
         </Card>
 
@@ -578,34 +531,19 @@ export default function ProfilePage() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Button
-                variant="outline"
-                className="justify-start h-auto p-4"
-                onClick={openEditProfile}
-              >
-                <User className="h-4 w-4 mr-2" />
-                <div className="text-left">
-                  <div className="font-medium">Edit Profile</div>
-                  <div className="text-xs text-muted-foreground">
-                    Update your information
-                  </div>
+            <Button
+              variant="outline"
+              className="w-full justify-start h-auto p-4"
+              onClick={openEditProfile}
+            >
+              <User className="h-4 w-4 mr-2" />
+              <div className="text-left">
+                <div className="font-medium">Edit Profile</div>
+                <div className="text-xs text-muted-foreground">
+                  Update your information
                 </div>
-              </Button>
-              <Button
-                variant="outline"
-                className="justify-start h-auto p-4"
-                onClick={() => setSecurityOpen(true)}
-              >
-                <Shield className="h-4 w-4 mr-2" />
-                <div className="text-left">
-                  <div className="font-medium">Security Settings</div>
-                  <div className="text-xs text-muted-foreground">
-                    Manage security options
-                  </div>
-                </div>
-              </Button>
-            </div>
+              </div>
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -788,69 +726,6 @@ export default function ProfilePage() {
               </Button>
               <Button onClick={handleSaveComicSettings}>Save Changes</Button>
             </div>
-          </div>
-        </DialogContent>
-      </Dialog>
-
-      {/* Security Settings Dialog */}
-      <Dialog open={securityOpen} onOpenChange={setSecurityOpen}>
-        <DialogContent className="sm:max-w-[500px]">
-          <DialogHeader>
-            <DialogTitle>Security Settings</DialogTitle>
-            <DialogDescription>
-              Manage your account security and authentication options.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="flex items-center gap-3">
-                <Lock className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Password</p>
-                  <p className="text-sm text-muted-foreground">
-                    {user.email?.includes("@gmail")
-                      ? "Managed by Google"
-                      : "Set a password for your account"}
-                  </p>
-                </div>
-              </div>
-              <Badge variant="outline">
-                {user.email?.includes("@gmail") ? "OAuth" : "Not Set"}
-              </Badge>
-            </div>
-
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="flex items-center gap-3">
-                <Smartphone className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Two-Factor Authentication</p>
-                  <p className="text-sm text-muted-foreground">
-                    Add an extra layer of security
-                  </p>
-                </div>
-              </div>
-              <Button variant="outline" size="sm" disabled>
-                Coming Soon
-              </Button>
-            </div>
-
-            <div className="flex items-center justify-between p-4 border rounded-lg">
-              <div className="flex items-center gap-3">
-                <Shield className="h-5 w-5 text-muted-foreground" />
-                <div>
-                  <p className="font-medium">Active Sessions</p>
-                  <p className="text-sm text-muted-foreground">
-                    Manage devices logged into your account
-                  </p>
-                </div>
-              </div>
-              <Badge variant="default">1 Active</Badge>
-            </div>
-          </div>
-          <div className="flex justify-end pt-4">
-            <Button variant="outline" onClick={() => setSecurityOpen(false)}>
-              Close
-            </Button>
           </div>
         </DialogContent>
       </Dialog>

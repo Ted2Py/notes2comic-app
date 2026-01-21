@@ -33,7 +33,6 @@ export function FileUploader({ onUpload }: FileUploaderProps) {
     accept: {
       "application/pdf": [".pdf"],
       "image/*": [".png", ".jpg", ".jpeg", ".webp"],
-      "video/*": [".mp4", ".mov"],
     },
     maxSize: 10 * 1024 * 1024, // 10MB
   });
@@ -60,7 +59,7 @@ export function FileUploader({ onUpload }: FileUploaderProps) {
               {isDragActive ? "Drop your file here" : "Upload your notes"}
             </p>
             <p className="text-sm text-muted-foreground">
-              PDF, images, or videos up to 10MB
+              PDF or images up to 10MB
             </p>
           </div>
         </div>

@@ -14,7 +14,7 @@ export interface ComicWithPanels {
   artStyle: string;
   tone: string;
   isPublic: boolean;
-  outputFormat: "strip" | "separate" | "fullpage";
+  outputFormat: "strip" | "separate";
   pageSize: "letter" | "a4" | "tabloid" | "a3";
   showCaptions?: boolean;
   panels: ComicPanel[];
@@ -119,9 +119,6 @@ export async function exportComicToPDF(
 
   // Export based on output format
   switch (comic.outputFormat) {
-    case "fullpage":
-      await exportFullPage(pdf, comic, options, pageWidth, pageHeight, margin, availableWidth);
-      break;
     case "strip":
       await exportStrip(pdf, comic, options, pageWidth, pageHeight, margin, availableWidth);
       break;
@@ -132,69 +129,6 @@ export async function exportComicToPDF(
   }
 
   return pdf.output("blob");
-}
-
-/**
- * Export as full page - all panels in a 4x3 grid on one page
- */
-async function exportFullPage(
-  pdf: any,
-  comic: ComicWithPanels,
-  options: ExportOptions,
-  pageWidth: number,
-  pageHeight: number,
-  margin: number,
-  availableWidth: number
-) {
-  const panelCount = comic.panels.length;
-
-  // Fixed 4x3 grid layout for consistency with comic strip format
-  const cols = 4;
-  const rows = Math.ceil(panelCount / cols);
-
-  const padding = 4;
-  const panelWidth = (availableWidth - (cols - 1) * padding) / cols;
-  const maxPanelHeight = (pageHeight - 2 * margin - (rows - 1) * padding) / rows;
-
-  // Fetch all images
-  const images: PanelWithImage[] = [];
-  for (const panel of comic.panels) {
-    const image = await fetchImage(panel.imageUrl, pdf);
-    images.push({ panel, image });
-  }
-
-  // Add images in 4x3 grid
-  for (let i = 0; i < images.length; i++) {
-    const item = images[i];
-    if (!item) continue;
-
-    const { panel: _panel, image } = item;
-    const row = Math.floor(i / cols);
-    const col = i % cols;
-
-    const x = margin + col * (panelWidth + padding);
-    let y = margin + row * (maxPanelHeight + padding);
-
-    // Scale image to fit panel as square
-    const scale = Math.min(panelWidth / image.width, maxPanelHeight / image.height);
-    const imgWidth = image.width * scale;
-    const imgHeight = image.height * scale;
-
-    // Center in grid cell
-    y += (maxPanelHeight - imgHeight) / 2;
-
-    pdf.addImage(
-      image.base64,
-      getMimeTypeFromHeader(image.mimeType),
-      x,
-      y,
-      imgWidth,
-      imgHeight
-    );
-  }
-
-  // Add watermark if requested
-  addWatermark(pdf, options, pageWidth, pageHeight);
 }
 
 /**

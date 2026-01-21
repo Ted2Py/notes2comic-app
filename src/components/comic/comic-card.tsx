@@ -57,7 +57,7 @@ export function ComicCard({
               <motion.img
                 src={thumbnailUrl}
                 alt={title}
-                className="w-full h-48 object-cover"
+                className="w-full h-48 object-contain bg-muted/30"
                 whileHover={{ scale: 1.05 }}
                 transition={{ duration: 0.3 }}
               />

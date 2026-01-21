@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 
 const examples = [
   {
@@ -27,6 +27,36 @@ const examples = [
 
 export function ExampleShowcase() {
   const [activeExample, setActiveExample] = useState(0);
+  const [generatedImages, setGeneratedImages] = useState<Record<number, string>>({});
+  const [generating, setGenerating] = useState<Record<number, boolean>>({});
+
+  // Generate image when example changes
+  useEffect(() => {
+    const generateImage = async () => {
+      if (generatedImages[activeExample]) return; // Already generated
+
+      setGenerating((prev) => ({ ...prev, [activeExample]: true }));
+
+      try {
+        const response = await fetch("/api/preview", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ exampleId: examples[activeExample]!.title }),
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          setGeneratedImages((prev) => ({ ...prev, [activeExample]: data.imageUrl }));
+        }
+      } catch (error) {
+        console.error("Failed to generate preview:", error);
+      } finally {
+        setGenerating((prev) => ({ ...prev, [activeExample]: false }));
+      }
+    };
+
+    generateImage();
+  }, [activeExample, generatedImages]);
 
   return (
     <div className="grid lg:grid-cols-2 gap-8 items-start">
@@ -97,11 +127,24 @@ export function ExampleShowcase() {
               initial={{ scale: 0.9 }}
               animate={{ scale: 1 }}
               transition={{ delay: 0.2, type: "spring" }}
-              className="aspect-video bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 rounded-lg border-2 border-primary/30 flex items-center justify-center"
+              className="aspect-video bg-gradient-to-br from-primary/20 via-primary/10 to-primary/5 rounded-lg border-2 border-primary/30 flex items-center justify-center overflow-hidden"
             >
-              <p className="text-center text-sm p-4 text-foreground/80">
-                {examples[activeExample]!.after}
-              </p>
+              {generating[activeExample] ? (
+                <div className="flex flex-col items-center gap-3">
+                  <Loader2 className="h-8 w-8 text-primary animate-spin" />
+                  <p className="text-sm text-foreground/80">Generating preview...</p>
+                </div>
+              ) : generatedImages[activeExample] ? (
+                <img
+                  src={generatedImages[activeExample]}
+                  alt={examples[activeExample]!.title}
+                  className="w-full h-full object-contain"
+                />
+              ) : (
+                <p className="text-center text-sm p-4 text-foreground/80">
+                  {examples[activeExample]!.after}
+                </p>
+              )}
             </motion.div>
           </div>
         </div>

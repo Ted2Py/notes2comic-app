@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { ArrowLeft, Sparkles, AlertCircle } from "lucide-react";
+import { ArrowLeft, Sparkles, AlertCircle, FileText } from "lucide-react";
 import { OutputFormatSelector } from "@/components/comic/output-format-selector";
 import { PanelCountSelector } from "@/components/comic/panel-count-selector";
 import { PanelLoading } from "@/components/comic/panel-loading";
@@ -20,16 +20,16 @@ import { FileUploader } from "@/components/upload/file-uploader";
 import { useSession } from "@/lib/auth-client";
 
 type Step = "upload" | "configure" | "generating";
+type InputMode = "file" | "text";
 
 // Helper function to determine input type from file MIME type
-function getInputType(file: File | null): "text" | "pdf" | "image" | "video" {
+function getInputType(file: File | null): "text" | "pdf" | "image" {
   if (!file) return "text";
 
   const mimeType = file.type.toLowerCase();
 
   if (mimeType === "application/pdf") return "pdf";
   if (mimeType.startsWith("image/")) return "image";
-  if (mimeType.startsWith("video/")) return "video";
   return "text";
 }
 
@@ -37,15 +37,17 @@ export default function CreatePage() {
   const router = useRouter();
   const { data: session, isPending } = useSession();
   const [step, setStep] = useState<Step>("upload");
+  const [inputMode, setInputMode] = useState<InputMode>("file");
   const [file, setFile] = useState<File | null>(null);
   const [uploadUrl, setUploadUrl] = useState<string>("");
+  const [textContent, setTextContent] = useState("");
   const [comicId, setComicId] = useState<string>("");
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [subject, setSubject] = useState("");
   const [artStyle, setArtStyle] = useState("retro");
   const [tone, setTone] = useState("friendly");
-  const [outputFormat, setOutputFormat] = useState<"strip" | "separate" | "fullpage">("separate");
+  const [outputFormat, setOutputFormat] = useState<"strip" | "separate">("separate");
   const [panelCount, setPanelCount] = useState(4);
   const [error, setError] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -90,9 +92,33 @@ export default function CreatePage() {
     }
   };
 
+  const handleTextSubmit = async () => {
+    if (!textContent.trim()) {
+      setError("Please enter some text content");
+      return;
+    }
+    setError("");
+    // Create a text file from the content
+    const blob = new Blob([textContent], { type: "text/plain" });
+    const textFile = new File([blob], "notes.txt", { type: "text/plain" });
+    setFile(textFile);
+    setUploadUrl(`data:text/plain;base64,${btoa(textContent)}`);
+    setStep("configure");
+  };
+
   const handleGenerate = async () => {
     if (!title.trim() || !subject.trim()) {
       setError("Please enter a title and subject");
+      return;
+    }
+
+    if (inputMode === "file" && !file) {
+      setError("Please upload a file or enter text content");
+      return;
+    }
+
+    if (inputMode === "text" && !textContent.trim() && !file) {
+      setError("Please enter some text content");
       return;
     }
 
@@ -107,8 +133,8 @@ export default function CreatePage() {
         body: JSON.stringify({
           title: title.trim(),
           description: description.trim() || null,
-          inputType: getInputType(file),
-          inputUrl: uploadUrl,
+          inputType: inputMode === "text" ? "text" : getInputType(file),
+          inputUrl: inputMode === "text" ? (uploadUrl || `data:text/plain;base64,${btoa(textContent)}`) : uploadUrl,
           artStyle,
           tone,
           subject: subject.trim(),
@@ -136,8 +162,8 @@ export default function CreatePage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           comicId: comic.id,
-          inputUrl: uploadUrl,
-          inputType: getInputType(file),
+          inputUrl: inputMode === "text" ? (uploadUrl || `data:text/plain;base64,${btoa(textContent)}`) : uploadUrl,
+          inputType: inputMode === "text" ? "text" : getInputType(file),
           options: { subject: subject.trim(), artStyle, tone, length: "medium" },
         }),
       });
@@ -203,10 +229,78 @@ export default function CreatePage() {
       {/* Upload Step */}
       {step === "upload" && (
         <div className="space-y-6">
-          <FileUploader onUpload={handleUpload} />
-          <p className="text-sm text-muted-foreground text-center">
-            Supported formats: PDF, PNG, JPG, WEBP, MP4, MOV (max 10MB)
-          </p>
+          {/* Input mode toggle */}
+          <div className="flex justify-center">
+            <div className="inline-flex p-1 bg-muted rounded-lg">
+              <button
+                onClick={() => setInputMode("file")}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  inputMode === "file"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Upload File
+              </button>
+              <button
+                onClick={() => setInputMode("text")}
+                className={`px-4 py-2 rounded-md text-sm font-medium transition-colors ${
+                  inputMode === "text"
+                    ? "bg-background text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                Paste Text
+              </button>
+            </div>
+          </div>
+
+          {/* File upload mode */}
+          {inputMode === "file" && (
+            <>
+              <FileUploader onUpload={handleUpload} />
+              <p className="text-sm text-muted-foreground text-center">
+                Supported formats: PDF, PNG, JPG, WEBP (max 10MB)
+              </p>
+            </>
+          )}
+
+          {/* Text input mode */}
+          {inputMode === "text" && (
+            <Card>
+              <CardContent className="p-6 space-y-4">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="p-2 bg-primary/10 rounded-lg">
+                    <FileText className="h-5 w-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold">Paste Your Notes</h3>
+                    <p className="text-sm text-muted-foreground">
+                      Paste your study notes directly into the text area below
+                    </p>
+                  </div>
+                </div>
+                <Textarea
+                  value={textContent}
+                  onChange={(e) => setTextContent(e.target.value)}
+                  placeholder="Paste your notes here..."
+                  rows={12}
+                  className="resize-none"
+                />
+                <div className="flex justify-between items-center">
+                  <p className="text-sm text-muted-foreground">
+                    {textContent.length} characters
+                  </p>
+                  <Button
+                    onClick={handleTextSubmit}
+                    disabled={!textContent.trim() || isSubmitting}
+                  >
+                    Continue to Configuration
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          )}
         </div>
       )}
 

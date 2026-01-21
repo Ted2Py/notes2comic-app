@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
-import { eq, and } from "drizzle-orm";
+import { eq, and, desc } from "drizzle-orm";
 import { auth } from "@/lib/auth";
 import { generatePanelImage, generateComic } from "@/lib/comic-generator";
 import { db } from "@/lib/db";
-import { comics, panels } from "@/lib/schema";
+import { comics, panels, panelHistory } from "@/lib/schema";
 
 // POST - Regenerate specific panel or entire comic
 export async function POST(
@@ -21,7 +21,7 @@ export async function POST(
     }
 
     const body = await req.json();
-    const { panelId, options } = body;
+    const { panelId, options, includeContext, editedText } = body;
 
     // Verify ownership
     const comic = await db.query.comics.findFirst({
@@ -48,23 +48,83 @@ export async function POST(
         );
       }
 
+      // Fetch adjacent panels for context
+      let contextString = "";
+      if (includeContext) {
+        const previousPanel = await db.query.panels.findFirst({
+          where: and(
+            eq(panels.comicId, id),
+            eq(panels.panelNumber, panel.panelNumber - 1)
+          ),
+        });
+
+        const nextPanel = await db.query.panels.findFirst({
+          where: and(
+            eq(panels.comicId, id),
+            eq(panels.panelNumber, panel.panelNumber + 1)
+          ),
+        });
+
+        const contextParts = [
+          previousPanel?.textBox || previousPanel?.metadata?.generationPrompt,
+          nextPanel?.textBox || nextPanel?.metadata?.generationPrompt
+        ].filter(Boolean);
+
+        contextString = contextParts.join(" | ");
+      }
+
       // Generate new image with character reference for consistency
+      // Use edited text if provided, otherwise use panel's caption
+      const dialogueText = editedText || panel.caption;
+
+      // Save current panel state to history before regenerating
+      // Get the next version number
+      const existingHistory = await db.query.panelHistory.findMany({
+        where: eq(panelHistory.panelId, panelId),
+        orderBy: [desc(panelHistory.versionNumber)],
+        limit: 1,
+      });
+      const nextVersionNumber = (existingHistory[0]?.versionNumber ?? 0) + 1;
+
+      // Save to history
+      await db.insert(panelHistory).values({
+        id: `history-${Date.now()}-${Math.random().toString(36).substring(7)}`,
+        panelId: panelId,
+        comicId: id,
+        versionNumber: nextVersionNumber,
+        imageUrl: panel.imageUrl,
+        caption: panel.caption,
+        textBox: panel.textBox,
+        speechBubbles: panel.speechBubbles,
+        bubblePositions: panel.bubblePositions,
+        detectedTextBoxes: panel.detectedTextBoxes,
+        drawingLayers: panel.drawingLayers,
+        drawingData: panel.drawingData,
+        metadata: panel.metadata,
+      });
+
       const newImageUrl = await generatePanelImage(
         {
           panelNumber: panel.panelNumber,
           description: panel.textBox || (panel.metadata?.generationPrompt as string) || "",
-          dialogue: panel.caption,
+          dialogue: dialogueText,
           visualElements: comic.artStyle,
         },
         options?.artStyle || comic.artStyle,
-        comic.characterReference || options?.characterContext as string
+        comic.characterReference || options?.characterContext as string,
+        undefined,  // outputFormat
+        undefined,  // pageSize
+        undefined,  // borderStyle
+        undefined,  // includeCaptions
+        contextString  // NEW: adjacent panels context
       );
 
-      // Update panel with regeneration count
+      // Update panel with regeneration count and new caption if edited text was provided
       await db
         .update(panels)
         .set({
           imageUrl: newImageUrl,
+          caption: dialogueText,
           regenerationCount: (panel.regenerationCount || 0) + 1,
         })
         .where(eq(panels.id, panelId));

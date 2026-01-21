@@ -8,20 +8,76 @@ import { comments, comics } from "@/lib/schema";
 
 // GET - List comments for a comic
 export async function GET(
-  _req: NextRequest,
+  req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const { id } = await params;
-    const comicComments = await db.query.comments.findMany({
-      where: eq(comments.comicId, id),
-      orderBy: (comments, { desc }) => [desc(comments.createdAt)],
+    const session = await auth.api.getSession({
+      headers: req.headers,
+    });
+
+    // Fetch all top-level comments for the comic
+    const allComments = await db.query.comments.findMany({
+      where: eq(comics.id, id),
+      orderBy: (c: any, { asc }: any) => [asc(c.createdAt)],
       with: {
-        user: true,
+        user: {
+          columns: {
+            id: true,
+            name: true,
+            image: true,
+          },
+        },
+        replies: {
+          with: {
+            user: {
+              columns: {
+                id: true,
+                name: true,
+                image: true,
+              },
+            },
+          },
+          orderBy: (r: any, { asc }: any) => [asc(r.createdAt)],
+        },
+        likes: {
+          columns: {
+            userId: true,
+          },
+        },
       },
     });
 
-    return NextResponse.json({ comments: comicComments });
+    // Get comic to check owner
+    const comic = await db.query.comics.findFirst({
+      where: eq(comics.id, id),
+      columns: {
+        userId: true,
+      },
+    });
+
+    // Filter to only top-level comments (no parentId) and add like counts
+    const topLevelComments = allComments
+      .filter((c: typeof comments.$inferSelect) => !(c as any).parentId)
+      .map((comment: any) => ({
+        ...comment,
+        likesCount: comment.likes.length,
+        isLiked: session?.user ? comment.likes.some((l: any) => l.userId === session.user.id) : false,
+        replies: (comment.replies || []).map((reply: any) => {
+          const replyLikes = reply.likes || [];
+          return {
+            ...reply,
+            likesCount: replyLikes.length,
+            isLiked: session?.user ? replyLikes.some((l: any) => l.userId === session.user.id) : false,
+          };
+        }),
+      }));
+
+    return NextResponse.json({
+      comments: topLevelComments,
+      comicOwnerId: comic?.userId || null,
+    });
   } catch (error) {
     console.error("List comments error:", error);
     return NextResponse.json(
@@ -46,7 +102,7 @@ export async function POST(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { content } = await req.json();
+    const { content, parentId } = await req.json();
 
     if (!content || content.trim().length === 0) {
       return NextResponse.json(
@@ -64,6 +120,19 @@ export async function POST(
       return NextResponse.json({ error: "Comic not found" }, { status: 404 });
     }
 
+    // If parentId is provided, verify the parent comment exists
+    if (parentId) {
+      const parentComment = await db.query.comments.findFirst({
+        where: eq(comments.id, parentId),
+      });
+      if (!parentComment) {
+        return NextResponse.json({ error: "Parent comment not found" }, { status: 404 });
+      }
+      if (parentComment.comicId !== id) {
+        return NextResponse.json({ error: "Parent comment does not belong to this comic" }, { status: 400 });
+      }
+    }
+
     // Moderate the comment content
     const trimmedContent = content.trim();
     const moderationResult = moderateComment(trimmedContent);
@@ -74,6 +143,7 @@ export async function POST(
         id: randomUUID(),
         comicId: id,
         userId: session.user.id,
+        parentId: parentId || null,
         content: trimmedContent,
         isCensored: moderationResult.isCensored,
         censoredContent: moderationResult.isCensored ? moderationResult.censoredContent : null,

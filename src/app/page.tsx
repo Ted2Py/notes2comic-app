@@ -26,7 +26,7 @@ export default function HomePage() {
               </h1>
               <p className="text-xl text-muted-foreground leading-relaxed">
                 Transform boring study materials into fun, visual comic strips.
-                Upload your notes, PDFs, images, or videos and let AI create
+                Upload your notes, PDFs, or images and let AI create
                 memorable educational content that actually sticks.
               </p>
               <div className="flex flex-col sm:flex-row gap-4 pt-4">
@@ -114,7 +114,7 @@ export default function HomePage() {
             {
               icon: "📄",
               title: "Multiple Input Formats",
-              description: "Upload text, PDFs, images, or videos up to 10MB",
+              description: "Upload text, PDFs, or images up to 10MB",
             },
             {
               icon: "🎨",
@@ -164,7 +164,7 @@ export default function HomePage() {
               Ready to Make Learning Fun?
             </h2>
             <p className="text-xl text-muted-foreground mb-8">
-              Join thousands of students who are learning visually and retaining more than ever before
+              Transform your notes into engaging comics and start learning visually today
             </p>
             <div className="flex flex-col sm:flex-row gap-4 justify-center">
               <Button size="lg" className="text-base" asChild>

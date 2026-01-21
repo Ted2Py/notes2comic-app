@@ -4,7 +4,7 @@ import { db } from "./db";
 import { getModel, GEMINI_PRO_MODEL, GEMINI_VISION_MODEL, GEMINI_IMAGE_MODEL } from "./gemini";
 import { processImageBufferToDimensions } from "./image-processor";
 import { extractTextFromPDF } from "./pdf-extractor";
-import { comics, panels } from "./schema";
+import { comics, panels, type DetectedTextBox } from "./schema";
 import { upload } from "./storage";
 
 // Types
@@ -13,7 +13,7 @@ export interface GenerationOptions {
   artStyle: "retro" | "manga" | "minimal" | "pixel" | "noir" | "watercolor" | "anime" | "popart";
   tone: "funny" | "serious" | "friendly" | "adventure" | "romantic" | "horror";
   length: "short" | "medium" | "long";
-  outputFormat?: "strip" | "separate" | "fullpage";
+  outputFormat?: "strip" | "separate";
   pageSize?: "letter" | "a4" | "tabloid" | "a3";
   requestedPanelCount?: number;
   borderStyle?: "straight" | "jagged" | "zigzag" | "wavy";
@@ -78,9 +78,6 @@ export async function extractContent(
     case "image":
       return await extractTextFromImage(fullUrl);
 
-    case "video":
-      return await extractTextFromVideo();
-
     default:
       throw new Error(`Unsupported input type: ${inputType}`);
   }
@@ -108,11 +105,100 @@ export async function extractTextFromImage(imageUrl: string): Promise<string> {
   return response.text() || "";
 }
 
-// Video processing (not yet implemented)
-export async function extractTextFromVideo(): Promise<string> {
-  throw new Error(
-    "Video processing is not yet supported. Please use text, PDF, or image input instead."
-  );
+// AI text box detection for editable overlays using Gemini Vision
+export async function detectTextBoxes(imageUrl: string): Promise<DetectedTextBox[]> {
+  const model = getModel(GEMINI_VISION_MODEL);
+
+  const prompt = `You are a comic text analyzer. Carefully examine this comic panel image and identify EVERY single text element.
+
+Look for and include:
+1. Speech bubbles (dialogue inside rounded/oval shapes with tails)
+2. Thought bubbles (cloud-shaped or disconnected bubbles)
+3. Narration/caption boxes (rectangular text boxes, often at top/bottom)
+4. Sound effects text (stylized words like "POW!", "WHOOSH!", etc.)
+5. Title text or headers
+6. Any handwritten or printed text anywhere in the image
+7. Text on signs, labels, or objects in the background
+8. Small text, faint text, or partially obscured text
+
+CRITICAL DETECTION RULES:
+- Be THOROUGH - don't miss any text, no matter how small or subtle
+- If you see multiple text areas, list ALL of them
+- For speech bubbles with multiple lines, capture the complete text
+- Include sound effects and onomatopoeia
+- Include narrator text in caption boxes
+- Even if text is stylized or artistic, extract it
+
+For each text region, provide:
+- text: The EXACT text content as written in the image (don't paraphrase or correct)
+- x: Left edge position as percentage (0-100)
+- y: Top edge position as percentage (0-100)
+- width: Width as percentage (0-100)
+- height: Height as percentage (0-100)
+- confidence: Your confidence in this detection (0.0-1.0)
+
+IMPORTANT:
+- Return ALL coordinates as percentages (0-100), never pixels
+- If you see NO text at all, return an empty array for textBoxes
+- List every text element you find, even if you're uncertain
+
+Respond ONLY in valid JSON format:
+{
+  "textBoxes": [
+    {
+      "text": "exact text from image",
+      "x": 10.5,
+      "y": 20.3,
+      "width": 30.2,
+      "height": 15.8,
+      "confidence": 0.95
+    }
+  ]
+}`;
+
+  // Convert relative URL to full URL
+  let fullUrl = imageUrl;
+  if (imageUrl.startsWith("/uploads/")) {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000";
+    fullUrl = `${baseUrl}${imageUrl}`;
+  }
+
+  const imageResponse = await fetch(fullUrl);
+  const imageBuffer = await imageResponse.arrayBuffer();
+  const base64Image = Buffer.from(imageBuffer).toString("base64");
+
+  const imagePart = {
+    inlineData: {
+      data: base64Image,
+      mimeType: "image/png",
+    },
+  };
+
+  const result = await model.generateContent([prompt, imagePart]);
+  const response = await result.response;
+  const text = response.text() || "";
+
+  try {
+    const jsonMatch = text.match(/\{[\s\S]*\}/);
+    if (jsonMatch) {
+      const parsed = JSON.parse(jsonMatch[0]);
+      if (parsed.textBoxes && Array.isArray(parsed.textBoxes)) {
+        return parsed.textBoxes.map((box: any, index: number) => ({
+          id: `detected-${Date.now()}-${index}`,
+          text: box.text || "",
+          x: box.x || 0,
+          y: box.y || 0,
+          width: box.width || 10,
+          height: box.height || 5,
+          confidence: box.confidence || 0.5,
+        }));
+      }
+    }
+  } catch (e) {
+    console.error("Failed to parse text detection response:", e);
+  }
+
+  return [];
 }
 
 // Extract character reference from source image BEFORE panel generation
@@ -366,12 +452,15 @@ export async function generatePanelImage(
   outputFormat?: "strip" | "separate" | "fullpage",
   _pageSize?: "letter" | "a4" | "tabloid" | "a3",
   borderStyle?: "straight" | "jagged" | "zigzag" | "wavy",
-  includeCaptions?: boolean
+  includeCaptions?: boolean,
+  adjacentContext?: string  // NEW: adjacent panels context for narrative continuity
 ): Promise<string> {
   // All panels are generated as SQUARE (1024x1024) for consistent grid layout
   // The outputFormat and pageSize are used for layout during export, not generation
 
-  const prompt = `Create a ${artStyle} style SQUARE comic panel illustration (1024x1024 pixels).
+  const prompt = `CRITICAL SIZE REQUIREMENT: This panel MUST be exactly 1024x1024 pixels (square format). ALL other panels in this comic are 1024x1024 - you MUST match this size EXACTLY. Do not vary dimensions under any circumstances.
+
+Create a ${artStyle} style SQUARE comic panel illustration.
 
 PANEL SCENE: ${script.description}
 
@@ -388,6 +477,11 @@ STRICT CHARACTER CONSISTENCY RULES:
 - Use the same color palette for clothing and features
 - If no reference yet, establish a clear character design that can be replicated` : "ESTABLISH A CLEAR CHARACTER DESIGN in this first panel that can be consistently replicated in future panels."}
 
+${adjacentContext ? `ADJACENT PANELS CONTEXT (for narrative continuity):
+${adjacentContext}
+
+Use this context to ensure the scene flows naturally with surrounding panels while maintaining the specific scene description above.` : ""}
+
 ARTISTIC STYLE REQUIREMENTS:
 - ${artStyle} art style with bold, clean lines
 - Vibrant colors suitable for educational comics
@@ -395,12 +489,18 @@ ARTISTIC STYLE REQUIREMENTS:
 - Dynamic composition with clear focal points
 - Professional comic book quality
 
-CRITICAL COMPOSITION INSTRUCTIONS:
+CRITICAL COMPOSITION INSTRUCTIONS - PREVENT CUTOFFS:
 - DO NOT include any borders or frames - this will be added later
-- Keep ALL important content (characters, speech bubbles, text) WITHIN the image frame
-- Maintain at least 10% padding from ALL edges (top, bottom, left, right)
-- Ensure no heads, hands, text, or important elements are cut off at edges
-- Frame the scene so everything fits comfortably with breathing room
+- MANDATORY: Keep ALL important content (characters, speech bubbles, text) well WITHIN the image frame
+- CRITICAL: Maintain at least 15% padding (150+ pixels) from ALL edges (top, bottom, left, right)
+- ABSOLUTELY NO cutoffs: Ensure NO heads, hands, feet, text, speech bubbles, or important elements are cut off at ANY edge
+- CRAM THE SCENE INWARD: Frame characters and action centrally with generous margins on all sides
+- WIDE SHOT FRAMING: Use slightly wider framing than needed - zoom out slightly to ensure full visibility
+- NEVER position characters at the very top edge - always leave significant headroom above heads
+- NEVER position characters at the very bottom edge - always leave space below feet/body
+- Center the main subject with equal margins on all sides
+- If a character's head is near the top, move them DOWN and zoom OUT
+- If a character's feet are near the bottom, move them UP and zoom OUT
 
 CRITICAL SPEECH BUBBLE INSTRUCTIONS:
 - Include a LARGE, clearly visible speech bubble containing exactly: "${script.dialogue}"
@@ -408,7 +508,9 @@ CRITICAL SPEECH BUBBLE INSTRUCTIONS:
 - Use comic-style rounded speech bubble with tail pointing to the speaker
 - Position bubble in an uncluttered area, NOT overlapping important visual elements
 - Text inside bubble must be large and legible (at least 24pt equivalent)
-- Position bubble well away from edges - at least 100 pixels from any edge
+- CRITICAL: Position bubble well away from edges - at least 150 pixels from any edge
+- NEVER position speech bubble at the very top or very bottom of the image
+- Keep entire bubble WITHIN frame - no part of bubble should be cut off
 - If no character is visible, use a rectangular caption/narration box instead
 
 ${borderStyle && outputFormat === "strip" ? `LAYOUT NOTE: This panel will be part of a 4x3 grid comic strip with borders added between panels by CSS. Focus on the panel content only - no borders needed.` : ""}

@@ -101,7 +101,7 @@ export const comics = pgTable(
     tone: text("tone", { enum: ["funny", "serious", "friendly", "adventure", "romantic", "horror"] }).notNull().default("friendly"),
     subject: text("subject").notNull(),
     // Customization fields
-    outputFormat: text("output_format", { enum: ["strip", "separate", "fullpage"] }).notNull().default("separate"),
+    outputFormat: text("output_format", { enum: ["strip", "separate"] }).notNull().default("separate"),
     pageSize: text("page_size", { enum: ["letter", "a4", "tabloid", "a3"] }).notNull().default("letter"),
     requestedPanelCount: integer("requested_panel_count"),
     characterReference: text("character_reference"),
@@ -142,12 +142,21 @@ export const panels = pgTable(
     caption: text("caption").notNull(),
     // Customization fields
     textBox: text("text_box"),
-    speechBubbles: jsonb("speech_bubbles").$type<SpeechBubble[]>(),
-    bubblePositions: jsonb("bubble_positions").$type<BubblePosition[]>(),
+    speechBubbles: jsonb("speech_bubbles").$type<EnhancedSpeechBubble[]>(),
+    bubblePositions: jsonb("bubble_positions").$type<EnhancedBubblePosition[]>(),
+    // NEW: AI-recognized text boxes
+    detectedTextBoxes: jsonb("detected_text_boxes").$type<DetectedTextBox[]>(),
+    // NEW: Drawing layers
+    drawingLayers: jsonb("drawing_layers").$type<DrawingLayer[]>(),
+    // NEW: Drawing data (canvas data URL)
+    drawingData: text("drawing_data"),
     regenerationCount: integer("regeneration_count").default(0).notNull(),
     metadata: jsonb("metadata").$type<{
       generationPrompt?: string;
       characterContext?: string;
+      // NEW: Store context for regeneration
+      previousPanelContext?: string;
+      nextPanelContext?: string;
       [key: string]: unknown;
     }>(),
     createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -155,6 +164,43 @@ export const panels = pgTable(
   (table) => [
     index("panels_comic_id_idx").on(table.comicId),
     index("panels_comic_number_idx").on(table.comicId, table.panelNumber),
+  ]
+);
+
+// Panel History table - stores previous versions of panels for restoration
+export const panelHistory = pgTable(
+  "panel_history",
+  {
+    id: text("id")
+      .primaryKey(),
+    panelId: text("panel_id")
+      .notNull()
+      .references(() => panels.id, { onDelete: "cascade" }),
+    comicId: text("comic_id")
+      .notNull()
+      .references(() => comics.id, { onDelete: "cascade" }),
+    versionNumber: integer("version_number").notNull(),
+    imageUrl: text("image_url").notNull(),
+    caption: text("caption").notNull(),
+    textBox: text("text_box"),
+    speechBubbles: jsonb("speech_bubbles").$type<EnhancedSpeechBubble[]>(),
+    bubblePositions: jsonb("bubble_positions").$type<EnhancedBubblePosition[]>(),
+    detectedTextBoxes: jsonb("detected_text_boxes").$type<DetectedTextBox[]>(),
+    drawingLayers: jsonb("drawing_layers").$type<DrawingLayer[]>(),
+    drawingData: text("drawing_data"),
+    metadata: jsonb("metadata").$type<{
+      generationPrompt?: string;
+      characterContext?: string;
+      previousPanelContext?: string;
+      nextPanelContext?: string;
+      [key: string]: unknown;
+    }>(),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("panel_history_panel_id_idx").on(table.panelId),
+    index("panel_history_comic_id_idx").on(table.comicId),
+    index("panel_history_version_idx").on(table.panelId, table.versionNumber),
   ]
 );
 
@@ -180,7 +226,7 @@ export const likes = pgTable(
 );
 
 // Comments table - gallery comments
-export const comments = pgTable(
+export const comments: any = pgTable(
   "comments",
   {
     id: text("id")
@@ -191,6 +237,7 @@ export const comments = pgTable(
     userId: text("user_id")
       .notNull()
       .references(() => user.id, { onDelete: "cascade" }),
+    parentId: text("parent_id").references((): any => comments.id, { onDelete: "cascade" }), // For threaded replies
     content: text("content").notNull(),
     isCensored: boolean("is_censored").default(false).notNull(),
     censoredContent: text("censored_content"), // The censored version displayed to users
@@ -199,6 +246,28 @@ export const comments = pgTable(
   (table) => [
     index("comments_comic_id_idx").on(table.comicId),
     index("comments_user_id_idx").on(table.userId),
+    index("comments_parent_id_idx").on(table.parentId),
+  ]
+);
+
+// Comment Likes table - likes on individual comments
+export const commentLikes = pgTable(
+  "comment_likes",
+  {
+    id: text("id")
+      .primaryKey(),
+    commentId: text("comment_id")
+      .notNull()
+      .references(() => comments.id, { onDelete: "cascade" }),
+    userId: text("user_id")
+      .notNull()
+      .references(() => user.id, { onDelete: "cascade" }),
+    createdAt: timestamp("created_at").defaultNow().notNull(),
+  },
+  (table) => [
+    index("comment_likes_comment_id_idx").on(table.commentId),
+    index("comment_likes_user_id_idx").on(table.userId),
+    unique("comment_likes_comment_user_unique").on(table.commentId, table.userId),
   ]
 );
 
@@ -209,6 +278,7 @@ export const userRelations = relations(user, ({ many }) => ({
   comics: many(comics),
   likes: many(likes),
   comments: many(comments),
+  commentLikes: many(commentLikes),
 }));
 
 export const sessionRelations = relations(session, ({ one }) => ({
@@ -231,13 +301,26 @@ export const comicsRelations = relations(comics, ({ one, many }) => ({
     references: [user.id],
   }),
   panels: many(panels),
+  panelHistory: many(panelHistory),
   likes: many(likes),
   comments: many(comments),
 }));
 
-export const panelsRelations = relations(panels, ({ one }) => ({
+export const panelsRelations = relations(panels, ({ one, many }) => ({
   comic: one(comics, {
     fields: [panels.comicId],
+    references: [comics.id],
+  }),
+  history: many(panelHistory),
+}));
+
+export const panelHistoryRelations = relations(panelHistory, ({ one }) => ({
+  panel: one(panels, {
+    fields: [panelHistory.panelId],
+    references: [panels.id],
+  }),
+  comic: one(comics, {
+    fields: [panelHistory.comicId],
     references: [comics.id],
   }),
 }));
@@ -253,13 +336,33 @@ export const likesRelations = relations(likes, ({ one }) => ({
   }),
 }));
 
-export const commentsRelations = relations(comments, ({ one }) => ({
+export const commentsRelations = relations(comments, ({ one, many }) => ({
   comic: one(comics, {
     fields: [comments.comicId],
     references: [comics.id],
   }),
   user: one(user, {
     fields: [comments.userId],
+    references: [user.id],
+  }),
+  parent: one(comments as any, {
+    fields: [comments.parentId],
+    references: [comments.id],
+    relationName: "comment_replies",
+  }),
+  replies: many(comments as any, {
+    relationName: "comment_replies",
+  }),
+  likes: many(commentLikes),
+}));
+
+export const commentLikesRelations = relations(commentLikes, ({ one }) => ({
+  comment: one(comments, {
+    fields: [commentLikes.commentId],
+    references: [comments.id],
+  }),
+  user: one(user, {
+    fields: [commentLikes.userId],
     references: [user.id],
   }),
 }));
@@ -269,7 +372,7 @@ export interface SpeechBubble {
   id: string;
   text: string;
   character?: string;
-  type: "dialogue" | "thought" | "narration";
+  type: "dialogue" | "thought" | "narration" | "shout" | "whisper" | "whisper-thought" | "box" | "rounded-box";
 }
 
 export interface BubblePosition {
@@ -279,4 +382,62 @@ export interface BubblePosition {
   width: number;  // Percentage width (0-100)
   height: number; // Percentage height (0-100)
   tailDirection?: "top" | "bottom" | "left" | "right" | "none";
+}
+
+// AI-recognized text boxes for editable overlays
+export interface DetectedTextBox {
+  id: string;
+  text: string;
+  x: number;      // Percentage position (0-100)
+  y: number;      // Percentage position (0-100)
+  width: number;  // Percentage width (0-100)
+  height: number; // Percentage height (0-100)
+  confidence: number; // 0-1 confidence score from OCR
+}
+
+// Enhanced speech bubble with Canva-style options
+export interface EnhancedSpeechBubble extends SpeechBubble {
+  backgroundColor?: string;
+  borderColor?: string;
+  borderWidth?: number;
+  textColor?: string;
+  fontFamily?: string;
+  fontSize?: number;
+  fontWeight?: "normal" | "bold" | "100" | "200" | "300" | "400" | "500" | "600" | "700" | "800" | "900";
+  shadow?: {
+    enabled: boolean;
+    blur?: number;
+    offsetX?: number;
+    offsetY?: number;
+    color?: string;
+  };
+}
+
+// Enhanced bubble position with tail customization
+export interface EnhancedBubblePosition extends BubblePosition {
+  tailPosition?: "top-left" | "top-center" | "top-right" | "bottom-left" | "bottom-center" | "bottom-right" | "left" | "right" | "none";
+  tailLength?: number; // Percentage (0-20)
+  rotation?: number; // Degrees (-180 to 180)
+}
+
+// Drawing layers for canvas strokes
+export interface DrawingLayer {
+  id: string;
+  strokes: Stroke[];
+  visible: boolean;
+  opacity: number;
+}
+
+export interface Stroke {
+  id: string;
+  points: Point[];
+  color: string;
+  width: number;
+  tool: "pen" | "eraser";
+  timestamp: number;
+}
+
+export interface Point {
+  x: number; // Percentage (0-100)
+  y: number; // Percentage (0-100)
 }

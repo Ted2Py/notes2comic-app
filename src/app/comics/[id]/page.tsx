@@ -1,7 +1,8 @@
-import { headers } from "next/headers";
+"use client";
+
+import { useEffect, useState } from "react";
 import Link from "next/link";
-import { redirect, notFound } from "next/navigation";
-import { eq, asc } from "drizzle-orm";
+import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Edit, Heart, MessageCircle } from "lucide-react";
 import { ComicComments } from "@/components/comic/comic-comments";
 import { ComicStripView } from "@/components/comic/comic-strip-view";
@@ -11,60 +12,115 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { auth } from "@/lib/auth";
-import { db } from "@/lib/db";
-import { comics, panels, likes } from "@/lib/schema";
+import { authClient } from "@/lib/auth-client";
 
-export default async function ComicPage({
-  params,
-}: {
-  params: Promise<{ id: string }>;
-}) {
-  const { id } = await params;
-  const session = await auth.api.getSession({
-    headers: await headers(),
-  });
+type Comic = {
+  id: string;
+  title: string;
+  description: string | null;
+  subject: string;
+  artStyle: string;
+  tone: string;
+  isPublic: boolean;
+  userId: string;
+  outputFormat?: "strip" | "separate";
+  borderStyle?: "straight" | "jagged" | "zigzag" | "wavy";
+  showCaptions?: boolean;
+  user: {
+    id: string;
+    name: string;
+    image: string | null;
+    bio: string | null;
+  };
+  panels: Array<{
+    id: string;
+    panelNumber: number;
+    imageUrl: string;
+    caption: string;
+    textBox: string | null;
+    speechBubbles: any[] | null;
+    bubblePositions: any[] | null;
+  }>;
+};
 
-  // Allow public viewing without login
-  const comic = await db.query.comics.findFirst({
-    where: eq(comics.id, id),
-    with: {
-      panels: {
-        orderBy: [asc(panels.panelNumber)],
-      },
-      user: {
-        columns: {
-          id: true,
-          name: true,
-          image: true,
-          bio: true,
-        },
-      },
-    },
-  });
+export default function ComicPage() {
+  const { id } = useParams();
+  const router = useRouter();
+  const [comic, setComic] = useState<Comic | null>(null);
+  const [session, setSession] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const [totalLikes, setTotalLikes] = useState(0);
+  const [initialLiked, setInitialLiked] = useState(false);
+
+  useEffect(() => {
+    async function loadData() {
+      if (!id) return;
+
+      try {
+        // Get session
+        const sess = await authClient.getSession();
+        setSession(sess?.data || null);
+
+        // Fetch comic data
+        const comicRes = await fetch(`/api/comics/${id}`);
+        if (!comicRes.ok) {
+          if (comicRes.status === 401 || comicRes.status === 404) {
+            router.push("/login");
+            return;
+          }
+          throw new Error("Failed to load comic");
+        }
+        const comicData = await comicRes.json();
+        setComic(comicData);
+
+        // Fetch likes
+        const likesRes = await fetch(`/api/comics/${id}/likes`);
+        if (likesRes.ok) {
+          const likesData = await likesRes.json();
+          setTotalLikes(likesData.total || 0);
+          setInitialLiked(likesData.liked || false);
+        }
+      } catch (error) {
+        console.error("Failed to load comic:", error);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadData();
+  }, [id, router]);
+
+  async function toggleVisibility() {
+    if (!comic) return;
+    const res = await fetch(`/api/comics/${id}`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ isPublic: !comic.isPublic }),
+    });
+    if (res.ok) {
+      setComic({ ...comic, isPublic: !comic.isPublic });
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="container mx-auto py-8 px-4 max-w-6xl">
+        <div className="flex items-center justify-center h-64">
+          <p className="text-muted-foreground">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!comic) {
-    notFound();
+    return (
+      <div className="container mx-auto py-8 px-4 max-w-6xl">
+        <p className="text-muted-foreground">Comic not found</p>
+      </div>
+    );
   }
 
-  // Require login for private comics
-  if (!comic.isPublic && (!session || comic.userId !== session.user.id)) {
-    redirect("/login");
-  }
-
-  const isOwner = session?.user.id === comic.userId;
-
-  // Fetch like count
-  const comicLikes = await db.query.likes.findMany({
-    where: eq(likes.comicId, id),
-  });
-  const totalLikes = comicLikes.length;
-
-  // Check if current user has liked
-  let initialLiked = false;
-  if (session) {
-    initialLiked = comicLikes.some((like) => like.userId === session.user.id);
-  }
+  const isOwner = session?.user?.id === comic.userId;
 
   return (
     <div className="container mx-auto py-8 px-4 max-w-6xl">
@@ -84,21 +140,13 @@ export default async function ComicPage({
         </div>
         <div className="flex items-center gap-3">
           {isOwner && (
-            <form action={async () => {
-              "use server";
-              await db.update(comics)
-                .set({ isPublic: !comic.isPublic })
-                .where(eq(comics.id, comic.id));
-              redirect(`/comics/${comic.id}`);
-            }}>
-              <Button
-                type="submit"
-                variant={comic.isPublic ? "default" : "outline"}
-                size="sm"
-              >
-                {comic.isPublic ? "🌐 Public" : "🔒 Private"}
-              </Button>
-            </form>
+            <Button
+              onClick={toggleVisibility}
+              variant={comic.isPublic ? "default" : "outline"}
+              size="sm"
+            >
+              {comic.isPublic ? "🌐 Public" : "🔒 Private"}
+            </Button>
           )}
           <ExportButton comicId={comic.id} comicTitle={comic.title} />
           {isOwner && (
@@ -159,7 +207,7 @@ export default async function ComicPage({
       {/* Comic View */}
       <ComicStripView
         panels={comic.panels}
-        outputFormat={comic.outputFormat}
+        outputFormat={comic.outputFormat || "strip"}
         borderStyle={comic.borderStyle}
         showCaptions={comic.showCaptions}
       />
@@ -175,7 +223,7 @@ export default async function ComicPage({
           <MessageCircle className="h-6 w-6" />
           Comments
         </h2>
-        <ComicComments comicId={comic.id} />
+        <ComicComments comicId={comic.id} comicOwnerId={comic.userId} />
       </div>
     </div>
   );

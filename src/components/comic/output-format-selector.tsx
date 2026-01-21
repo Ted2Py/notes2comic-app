@@ -3,19 +3,18 @@
 import { cn } from "@/lib/utils";
 
 interface OutputFormatSelectorProps {
-  value: "strip" | "separate" | "fullpage";
-  onChange: (value: "strip" | "separate" | "fullpage") => void;
+  value: "strip" | "separate";
+  onChange: (value: "strip" | "separate") => void;
 }
 
 const FORMATS = [
   { id: "strip", label: "Comic Strip", description: "Panels connected with borders" },
-  { id: "separate", label: "Separate Panels", description: "Individual standalone images" },
-  { id: "fullpage", label: "Full Page", description: "Single combined image" }
+  { id: "separate", label: "Separate Panels", description: "Individual standalone images" }
 ];
 
 export function OutputFormatSelector({ value, onChange }: OutputFormatSelectorProps) {
   return (
-    <div className="grid grid-cols-3 gap-4">
+    <div className="grid grid-cols-2 gap-4">
       {FORMATS.map((format) => (
         <button
           key={format.id}

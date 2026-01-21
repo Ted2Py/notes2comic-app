@@ -2,6 +2,8 @@
 
 import { useRouter, useSearchParams } from "next/navigation";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Search } from "lucide-react";
 
 const PREDEFINED_SUBJECTS = [
   "All",
@@ -14,22 +16,6 @@ const PREDEFINED_SUBJECTS = [
   "Computer Science",
 ];
 
-const INPUT_TYPES = [
-  { value: "", label: "All Types" },
-  { value: "text", label: "Text" },
-  { value: "pdf", label: "PDF" },
-  { value: "image", label: "Image" },
-  { value: "video", label: "Video" },
-];
-
-const PAGE_SIZES = [
-  { value: "", label: "All Sizes" },
-  { value: "letter", label: "Letter" },
-  { value: "a4", label: "A4" },
-  { value: "tabloid", label: "Tabloid" },
-  { value: "a3", label: "A3" },
-];
-
 interface GalleryFiltersProps {
   subjects?: string[];
 }
@@ -39,8 +25,7 @@ export function GalleryFilters({ subjects = PREDEFINED_SUBJECTS }: GalleryFilter
   const searchParams = useSearchParams();
   const currentSubject = searchParams.get("subject");
   const currentSort = searchParams.get("sort") || "recent";
-  const currentInputType = searchParams.get("inputType") || "";
-  const currentPageSize = searchParams.get("pageSize") || "";
+  const currentSearch = searchParams.get("search") || "";
 
   const handleSubjectChange = (subject: string) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -58,28 +43,36 @@ export function GalleryFilters({ subjects = PREDEFINED_SUBJECTS }: GalleryFilter
     router.push(`/gallery?${params.toString()}`);
   };
 
-  const handleInputTypeChange = (inputType: string) => {
+  const handleSearchChange = (search: string) => {
     const params = new URLSearchParams(searchParams.toString());
-    if (inputType === "") {
-      params.delete("inputType");
+    if (search.trim() === "") {
+      params.delete("search");
     } else {
-      params.set("inputType", inputType);
+      params.set("search", search);
     }
     router.push(`/gallery?${params.toString()}`);
   };
 
-  const handlePageSizeChange = (pageSize: string) => {
-    const params = new URLSearchParams(searchParams.toString());
-    if (pageSize === "") {
-      params.delete("pageSize");
-    } else {
-      params.set("pageSize", pageSize);
-    }
-    router.push(`/gallery?${params.toString()}`);
+  const handleSearchSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    // Search is already handled by the onChange, this just prevents form submission
   };
 
   return (
     <div className="mb-8 space-y-6">
+      {/* Search Bar */}
+      <form onSubmit={handleSearchSubmit} className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+        <Input
+          type="text"
+          placeholder="Search comics by title, subject, or tags..."
+          value={currentSearch}
+          onChange={(e) => handleSearchChange(e.target.value)}
+          className="pl-10"
+        />
+      </form>
+
+      {/* Subject Filter */}
       <div>
         <h3 className="text-sm font-medium mb-3 text-muted-foreground">Filter by Subject</h3>
         <div className="flex flex-wrap gap-2">
@@ -97,42 +90,7 @@ export function GalleryFilters({ subjects = PREDEFINED_SUBJECTS }: GalleryFilter
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div>
-          <h3 className="text-sm font-medium mb-3 text-muted-foreground">Input Type</h3>
-          <div className="flex flex-wrap gap-2">
-            {INPUT_TYPES.map((type) => (
-              <Button
-                key={type.value}
-                variant={(currentInputType === type.value) || (type.value === "" && !currentInputType) ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleInputTypeChange(type.value)}
-                className="transition-all duration-200"
-              >
-                {type.label}
-              </Button>
-            ))}
-          </div>
-        </div>
-
-        <div>
-          <h3 className="text-sm font-medium mb-3 text-muted-foreground">Paper Size</h3>
-          <div className="flex flex-wrap gap-2">
-            {PAGE_SIZES.map((size) => (
-              <Button
-                key={size.value}
-                variant={(currentPageSize === size.value) || (size.value === "" && !currentPageSize) ? "default" : "outline"}
-                size="sm"
-                onClick={() => handlePageSizeChange(size.value)}
-                className="transition-all duration-200"
-              >
-                {size.label}
-              </Button>
-            ))}
-          </div>
-        </div>
-      </div>
-
+      {/* Sort By */}
       <div>
         <h3 className="text-sm font-medium mb-3 text-muted-foreground">Sort By</h3>
         <div className="flex gap-2">

@@ -16,8 +16,7 @@ interface GalleryGridProps {
   page: number;
   subject?: string | null;
   sort?: string | null;
-  inputType?: string | null;
-  pageSize?: string | null;
+  search?: string | null;
 }
 
 interface Comic {
@@ -35,21 +34,7 @@ interface Comic {
   panels: Array<{ imageUrl: string }>;
 }
 
-const INPUT_TYPE_LABELS: Record<string, string> = {
-  text: "Text",
-  pdf: "PDF",
-  image: "Image",
-  video: "Video",
-};
-
-const PAGE_SIZE_LABELS: Record<string, string> = {
-  letter: "Letter",
-  a4: "A4",
-  tabloid: "Tabloid",
-  a3: "A3",
-};
-
-export function GalleryGrid({ page, subject, sort, inputType, pageSize }: GalleryGridProps) {
+export function GalleryGrid({ page, subject, sort, search }: GalleryGridProps) {
   const { data: session } = useSession();
   const [comics, setComics] = useState<Comic[]>([]);
   const [loading, setLoading] = useState(true);
@@ -63,8 +48,7 @@ export function GalleryGrid({ page, subject, sort, inputType, pageSize }: Galler
         sort: sort || "recent",
       });
       if (subject) params.append("subject", subject);
-      if (inputType) params.append("inputType", inputType);
-      if (pageSize) params.append("pageSize", pageSize);
+      if (search) params.append("search", search);
 
       const response = await fetch(`/api/gallery?${params.toString()}`);
       if (response.ok) {
@@ -91,7 +75,7 @@ export function GalleryGrid({ page, subject, sort, inputType, pageSize }: Galler
     } finally {
       setLoading(false);
     }
-  }, [page, subject, sort, inputType, pageSize]);
+  }, [page, subject, sort, search]);
 
   useEffect(() => {
     fetchGallery();
@@ -215,14 +199,6 @@ export function GalleryGrid({ page, subject, sort, inputType, pageSize }: Galler
                   <h3 className="font-semibold truncate">{comic.title}</h3>
                 </Link>
                 <Badge variant="secondary" className="shrink-0">{comic.subject}</Badge>
-              </div>
-              <div className="flex flex-wrap gap-1.5">
-                <Badge variant="outline" className="text-xs">
-                  {INPUT_TYPE_LABELS[comic.inputType] || comic.inputType}
-                </Badge>
-                <Badge variant="outline" className="text-xs">
-                  {PAGE_SIZE_LABELS[comic.pageSize] || comic.pageSize}
-                </Badge>
               </div>
               <div className="flex items-center justify-between w-full text-sm text-muted-foreground">
                 <span>{comic.panels?.length || comic.metadata?.panelCount || 0} panels</span>

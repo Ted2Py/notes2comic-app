@@ -50,6 +50,27 @@
       "when": 1768923065406,
       "tag": "0006_bent_skrulls",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1768938478643,
+      "tag": "0007_misty_leopardon",
+      "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1768945218371,
+      "tag": "0008_sharp_stryfe",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1768950777714,
+      "tag": "0009_huge_bloodstorm",
+      "breakpoints": true
     }
   ]
 }

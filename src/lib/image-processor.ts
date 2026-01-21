@@ -9,7 +9,7 @@ export const PAPER_SIZE_DIMENSIONS = {
   a3: { width: 1587, height: 1123 },      // 16.54x11.69 inches
 };
 
-export const SEPARATE_PANEL_DIMENSIONS = { width: 1056, height: 816 };
+export const SEPARATE_PANEL_DIMENSIONS = { width: 1024, height: 1024 };
 
 /**
  * Process an image buffer to exact dimensions using sharp
@@ -18,7 +18,7 @@ export const SEPARATE_PANEL_DIMENSIONS = { width: 1056, height: 816 };
 export async function processImageBufferToDimensions(
   imageBuffer: Buffer,
   pageSize: 'letter' | 'a4' | 'tabloid' | 'a3' | 'separate',
-  outputFormat: 'strip' | 'separate' | 'fullpage'
+  outputFormat: 'strip' | 'separate'
 ): Promise<Buffer> {
   let targetDimensions;
 
@@ -30,16 +30,17 @@ export async function processImageBufferToDimensions(
 
   try {
     // Process the image to exact dimensions
-    // - Resize maintaining aspect ratio to cover the target area
-    // - Crop to exact dimensions from center
+    // - Resize maintaining aspect ratio to FIT WITHIN the target area (no cropping)
+    // - Use 'contain' to show full image without cutting off top/bottom
     // - Use high quality settings
     const processedImage = await sharp(imageBuffer)
       .resize({
         width: targetDimensions.width,
         height: targetDimensions.height,
-        fit: 'cover',
+        fit: 'contain',  // Changed from 'cover' to prevent cropping
         position: 'center',
         kernel: sharp.kernel.lanczos3,
+        background: { r: 255, g: 255, b: 255, alpha: 1 },  // White background for letterboxing
       })
       .toFormat('png', {
         quality: 95,
@@ -61,7 +62,7 @@ export async function processImageBufferToDimensions(
 export async function fetchAndProcessImage(
   imageUrl: string,
   pageSize: 'letter' | 'a4' | 'tabloid' | 'a3' | 'separate',
-  outputFormat: 'strip' | 'separate' | 'fullpage'
+  outputFormat: 'strip' | 'separate'
 ): Promise<Buffer> {
   // Handle local URLs
   let fullUrl = imageUrl;

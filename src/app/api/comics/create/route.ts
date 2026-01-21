@@ -71,7 +71,7 @@ export async function POST(req: NextRequest) {
     }
 
     // Validate output format if provided
-    const validOutputFormats = ["strip", "separate", "fullpage"];
+    const validOutputFormats = ["strip", "separate"];
     if (outputFormat && !validOutputFormats.includes(outputFormat)) {
       return NextResponse.json(
         { error: `Invalid outputFormat. Must be one of: ${validOutputFormats.join(", ")}` },
