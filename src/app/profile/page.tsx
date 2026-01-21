@@ -21,7 +21,6 @@ import { StyleSelector } from "@/components/comic/style-selector";
 import { ToneSelector } from "@/components/comic/tone-selector";
 import { ImageCropDialog } from "@/components/profile/image-crop-dialog";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,

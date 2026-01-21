@@ -133,7 +133,7 @@ export function PropertiesPanel({
       y: 20,
       width: 40,
       height: 15,
-      tailPosition: undefined, // Tails are now automatic based on bubble type
+      tailPosition: "none",
     };
 
     onPanelChange({
@@ -212,7 +212,7 @@ export function PropertiesPanel({
         y: box.y,
         width: box.width,
         height: box.height,
-        tailPosition: undefined, // Tails are now automatic based on bubble type
+        tailPosition: "none" as const,
       }));
 
       // Update the panel with new speech bubbles (no image regeneration)

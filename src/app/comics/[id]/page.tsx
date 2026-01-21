@@ -13,6 +13,9 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { authClient } from "@/lib/auth-client";
+import type { panels } from "@/lib/schema";
+
+type Panel = typeof panels.$inferSelect;
 
 type Comic = {
   id: string;
@@ -32,15 +35,7 @@ type Comic = {
     image: string | null;
     bio: string | null;
   };
-  panels: Array<{
-    id: string;
-    panelNumber: number;
-    imageUrl: string;
-    caption: string;
-    textBox: string | null;
-    speechBubbles: any[] | null;
-    bubblePositions: any[] | null;
-  }>;
+  panels: Panel[];
 };
 
 export default function ComicPage() {
@@ -208,8 +203,8 @@ export default function ComicPage() {
       <ComicStripView
         panels={comic.panels}
         outputFormat={comic.outputFormat || "strip"}
-        borderStyle={comic.borderStyle}
-        showCaptions={comic.showCaptions}
+        {...(comic.borderStyle && { borderStyle: comic.borderStyle })}
+        {...(comic.showCaptions !== undefined && { showCaptions: comic.showCaptions })}
       />
 
       {/* Like Button */}

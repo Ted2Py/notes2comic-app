@@ -4,6 +4,7 @@ import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { exportComicToPDF } from "@/lib/pdf-exporter";
 import { comics } from "@/lib/schema";
+import type { ComicWithPanels } from "@/lib/pdf-exporter";
 
 export async function GET(
   req: NextRequest,
@@ -42,7 +43,27 @@ export async function GET(
       watermark: comic.isPublic,
     };
 
-    const pdfBlob = await exportComicToPDF(comic, options);
+    // Type assertion to match expected ComicWithPanels structure
+    const comicForExport: ComicWithPanels = {
+      id: comic.id,
+      title: comic.title,
+      description: comic.description,
+      subject: comic.subject,
+      artStyle: comic.artStyle,
+      tone: comic.tone,
+      isPublic: comic.isPublic,
+      outputFormat: comic.outputFormat,
+      pageSize: comic.pageSize,
+      showCaptions: comic.showCaptions,
+      panels: (comic.panels as any[]).map((p: any) => ({
+        id: p.id,
+        panelNumber: p.panelNumber,
+        imageUrl: p.imageUrl,
+        caption: p.caption,
+      })),
+    };
+
+    const pdfBlob = await exportComicToPDF(comicForExport, options);
 
     return new NextResponse(pdfBlob, {
       headers: {

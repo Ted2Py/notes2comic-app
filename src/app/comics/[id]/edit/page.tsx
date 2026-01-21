@@ -4,7 +4,10 @@ import { eq } from "drizzle-orm";
 import { ComicEditor } from "@/components/comic/comic-editor";
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { comics } from "@/lib/schema";
+import { comics, panels } from "@/lib/schema";
+
+type Comic = typeof comics.$inferSelect;
+type Panel = typeof panels.$inferSelect;
 
 
 export default async function EditComicPage({
@@ -37,5 +40,8 @@ export default async function EditComicPage({
     redirect("/dashboard");
   }
 
-  return <ComicEditor comic={comic} />;
+  // Type assertion: panels from Drizzle query are Panel[] but type is lost
+  const typedComic = comic as Comic & { panels: Panel[] };
+
+  return <ComicEditor comic={typedComic} />;
 }

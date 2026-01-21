@@ -31,10 +31,16 @@ interface DiagnosticsResponse {
   overallStatus: StatusLevel;
 }
 
-// This endpoint is intentionally public (no auth required) because it's used
-// by the setup checklist on the homepage before users are logged in.
-// It only returns boolean flags about configuration status, not sensitive data.
+// This endpoint is for development/setup only and is disabled in production
 export async function GET(req: Request) {
+  // Block diagnostics in production for security
+  if (process.env.NODE_ENV === "production") {
+    return NextResponse.json(
+      { error: "Diagnostics endpoint is not available in production" },
+      { status: 404 }
+    );
+  }
+
   const env = {
     POSTGRES_URL: Boolean(process.env.POSTGRES_URL),
     BETTER_AUTH_SECRET: Boolean(process.env.BETTER_AUTH_SECRET),
