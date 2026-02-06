@@ -616,6 +616,11 @@ export async function generateComic(
     // Step 1: Extract content
     const content = await extractContent(inputUrl, inputType);
 
+    // Log extracted content for debugging
+    console.log(`[Comic ${comicId}] Extracted content length: ${content.length} characters`);
+    console.log(`[Comic ${comicId}] Content preview: ${content.substring(0, 200)}...`);
+    console.log(`[Comic ${comicId}] Content type: ${inputType}`);
+
     // Step 2: Analyze content
     const analysis = await analyzeContent(content, options.subject);
 
