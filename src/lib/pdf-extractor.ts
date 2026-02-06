@@ -10,8 +10,10 @@ export async function extractTextFromPDF(buffer: Buffer): Promise<string> {
 
       pdfReader.parseBuffer(buffer, (err, item) => {
         if (err) {
-          // Handle error
-          reject(new Error(`Failed to parse PDF: ${err}`));
+          // Handle error - log full error details
+          console.error("PDF parsing error details:", JSON.stringify(err, null, 2));
+          console.error("Error object:", err);
+          reject(new Error(`Failed to parse PDF: ${JSON.stringify(err)}`));
           return;
         }
 

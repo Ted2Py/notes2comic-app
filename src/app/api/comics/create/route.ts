@@ -121,7 +121,7 @@ export async function POST(req: NextRequest) {
         pageSize: pageSize || "letter",
         requestedPanelCount: requestedPanelCount || null,
         status: "draft",
-        isPublic: isPublic ?? false,
+        isPublic: isPublic ?? true,
         borderStyle: borderStyle || "straight",
         showCaptions: showCaptions ?? false,
         tags: tags || [trimmedSubject],

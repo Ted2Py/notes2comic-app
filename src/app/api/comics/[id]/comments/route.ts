@@ -19,7 +19,7 @@ export async function GET(
 
     // Fetch all top-level comments for the comic
     const allComments = await db.query.comments.findMany({
-      where: eq(comics.id, id),
+      where: eq(comments.comicId, id),
       orderBy: (c: any, { asc }: any) => [asc(c.createdAt)],
       with: {
         user: {
